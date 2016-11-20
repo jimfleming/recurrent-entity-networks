@@ -7,5 +7,5 @@ Recurrent Entity Networks](https://openreview.net/forum?id=rJTKKKqeg).
 
 ## Dependencies
 
-- TensorFlow v0.11
-- Keras v1.10
+- TensorFlow v0.11rc0
+- Keras v1.1.1

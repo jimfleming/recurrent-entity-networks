@@ -67,32 +67,32 @@ def tokenize_stories(stories, token_to_id):
 
 def main():
     filenames = [
-        'qa12_conjunction',
-        'qa4_two-arg-relations',
-        'qa20_agents-motivations',
-        'qa17_positional-reasoning',
-        'qa13_compound-coreference',
-        'qa15_basic-deduction',
-        'qa7_counting',
-        'qa11_basic-coreference',
-        'qa19_path-finding',
-        'qa16_basic-induction',
-        'qa10_indefinite-knowledge',
-        'qa18_size-reasoning',
-        'qa2_two-supporting-facts',
-        'qa5_three-arg-relations',
-        'qa3_three-supporting-facts',
-        'qa9_simple-negation',
-        'qa14_time-reasoning',
-        'qa8_lists-sets',
-        'qa6_yes-no-questions',
         'qa1_single-supporting-fact',
+        'qa2_two-supporting-facts',
+        'qa3_three-supporting-facts',
+        'qa4_two-arg-relations',
+        'qa5_three-arg-relations',
+        'qa6_yes-no-questions',
+        'qa7_counting',
+        'qa8_lists-sets',
+        'qa9_simple-negation',
+        'qa10_indefinite-knowledge',
+        'qa11_basic-coreference',
+        'qa12_conjunction',
+        'qa13_compound-coreference',
+        'qa14_time-reasoning',
+        'qa15_basic-deduction',
+        'qa16_basic-induction',
+        'qa17_positional-reasoning',
+        'qa18_size-reasoning',
+        'qa19_path-finding',
+        'qa20_agents-motivations',
     ]
 
     tar = tarfile.open('datasets/babi_tasks_data_1_20_v1.2.tar.gz')
     for filename in tqdm(filenames):
-        stories_path_train = os.path.join('tasks_1-20_v1-2/en/', filename + '_train.txt')
-        stories_path_test = os.path.join('tasks_1-20_v1-2/en/', filename + '_test.txt')
+        stories_path_train = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_train.txt')
+        stories_path_test = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_test.txt')
 
         dataset_path_train = os.path.join('datasets/processed/', filename + '_train.tfrecords')
         dataset_path_test = os.path.join('datasets/processed/', filename + '_test.tfrecords')

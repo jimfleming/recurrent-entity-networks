@@ -16,7 +16,7 @@ class Trainer(object):
         self.model_test = model_test
 
     def train(self):
-        history_size = 100
+        history_size = 1000
 
         loss_train_all = np.zeros(history_size)
         accuracy_train_all = np.zeros(history_size)
@@ -28,11 +28,14 @@ class Trainer(object):
             with tqdm(desc='Training...') as pbar:
                 step = 0
                 while not self.supervisor.should_stop():
+                    learning_rate = 1e-2 / 2**(step // 2500)
                     _, loss_train, accuracy_train = self.sess.run([
                         self.model_train.train_op,
                         self.model_train.loss,
-                        self.model_train.accuracy
-                    ])
+                        self.model_train.accuracy,
+                    ], feed_dict={
+                        self.model_train.learning_rate: learning_rate
+                    })
 
                     loss_test, accuracy_test = self.sess.run([
                         self.model_test.loss,
@@ -45,14 +48,16 @@ class Trainer(object):
                     loss_test_all[step%history_size] = loss_test
                     accuracy_test_all[step%history_size] = accuracy_test
 
-                    loss_train_mean = np.mean(loss_train_all[:min(step, history_size)])
-                    accuracy_train_mean = np.mean(accuracy_train_all[:min(step, history_size)])
+                    if step > 1:
+                        loss_train_mean = np.mean(loss_train_all[:min(step, history_size)])
+                        accuracy_train_mean = np.mean(accuracy_train_all[:min(step, history_size)])
 
-                    loss_test_mean = np.mean(loss_test_all[:min(step, history_size)])
-                    accuracy_test_mean = np.mean(accuracy_test_all[:min(step, history_size)])
+                        loss_test_mean = np.mean(loss_test_all[:min(step, history_size)])
+                        accuracy_test_mean = np.mean(accuracy_test_all[:min(step, history_size)])
 
-                    pbar.set_description('[Train] Loss: {:.8f}, Accuracy: {:.2f} [Test] Loss: {:.8f}, Accuracy: {:.2f}' \
-                        .format(loss_train_mean, accuracy_train_mean, loss_test_mean, accuracy_test_mean))
+                        pbar.set_description('[Train] Loss: {:.8f}, Accuracy: {:.4f} [Test] Loss: {:.8f}, Accuracy: {:.4f} (Learning Rate: {:.8f})' \
+                            .format(loss_train_mean, accuracy_train_mean, loss_test_mean, accuracy_test_mean, learning_rate))
+
                     pbar.update()
                     step += 1
         except tf.errors.OutOfRangeError:

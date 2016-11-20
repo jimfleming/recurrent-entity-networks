@@ -15,8 +15,9 @@ from babi_model.data import input_pipeline
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_integer('batch_size', 32, 'Batch size.')
-tf.app.flags.DEFINE_integer('num_epochs', 40, 'Number of training epochs.')
+# XXX: We assume a relatively large batch size as in End-To-End Memory Networks.
+tf.app.flags.DEFINE_integer('batch_size', 128, 'Batch size.')
+tf.app.flags.DEFINE_integer('num_epochs', 200, 'Number of training epochs.')
 tf.app.flags.DEFINE_string('logdir', 'logs/{}'.format(int(time.time())), 'Log directory.')
 
 def main(_):
@@ -38,6 +39,7 @@ def main(_):
             answer_train,
             story_length_train,
             query_length_train,
+            batch_size=FLAGS.batch_size,
             is_training=True)
 
     with tf.variable_scope('model', reuse=True):
@@ -47,6 +49,7 @@ def main(_):
             answer_test,
             story_length_test,
             query_length_test,
+            batch_size=FLAGS.batch_size,
             is_training=False)
 
     supervisor = tf.train.Supervisor(

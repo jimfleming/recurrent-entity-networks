@@ -9,9 +9,9 @@ import random; random.seed(SEED)
 import numpy as np; np.random.seed(SEED)
 import tensorflow as tf; tf.set_random_seed(SEED)
 
-from babi_model.model import Model
-from babi_model.trainer import Trainer
-from babi_model.data import input_pipeline
+from entitity_networks.model import Model
+from entitity_networks.trainer import Trainer
+from entitity_networks.data import input_pipeline
 
 FLAGS = tf.app.flags.FLAGS
 

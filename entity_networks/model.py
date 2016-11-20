@@ -5,10 +5,10 @@ from __future__ import division
 import numpy as np
 import tensorflow as tf
 
-from babi_model.activations import prelu
-
 from keras.metrics import categorical_accuracy
-from babi_model.dynamic_memory_cell import DynamicMemoryCell
+
+from entity_networks.activations import prelu
+from entity_networks.dynamic_memory_cell import DynamicMemoryCell
 
 class Model(object):
 

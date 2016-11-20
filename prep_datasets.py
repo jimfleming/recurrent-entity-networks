@@ -33,7 +33,7 @@ def parse_stories(lines):
             story.append(sentence)
     return data
 
-def save_dataset(stories, path):
+def save_dataset(stories, story_max_length, query_max_length, path):
     writer = tf.python_io.TFRecordWriter(path)
     for story, query, answer in stories:
         story_length = len(story)
@@ -52,6 +52,12 @@ def save_dataset(stories, path):
 
         for token_id in query:
             query_list.feature.add().int64_list.value.append(token_id)
+
+        for _ in range(story_max_length - story_length):
+            story_list.feature.add().int64_list.value.append(0)
+
+        for _ in range(query_max_length - query_length):
+            query_list.feature.add().int64_list.value.append(0)
 
         writer.write(example.SerializeToString())
     writer.close()
@@ -115,16 +121,16 @@ def main():
         stories_test = tokenize_stories(stories_test, token_to_id)
         stories_all = stories_train + stories_test
 
-        story_maxlen = max([len(story) for story, _, _ in stories_all])
-        query_maxlen = max([len(query) for _, query, _ in stories_all])
+        story_max_length = max([len(story) for story, _, _ in stories_all])
+        query_max_length = max([len(query) for _, query, _ in stories_all])
 
         print('Dataset:', filename)
-        print('Max story length:', story_maxlen)
-        print('Max query length:', query_maxlen)
+        print('Max story length:', story_max_length)
+        print('Max query length:', query_max_length)
         print('Vocab size:', vocab_size)
 
-        save_dataset(stories_train, dataset_path_train)
-        save_dataset(stories_test, dataset_path_test)
+        save_dataset(stories_train, story_max_length, query_max_length, dataset_path_train)
+        save_dataset(stories_test, story_max_length, query_max_length, dataset_path_test)
 
 if __name__ == '__main__':
     main()

@@ -13,9 +13,13 @@ from babi_model.dynamic_memory_cell import DynamicMemoryCell
 class Model(object):
 
     def __init__(self, story, query, answer, story_length, query_length, batch_size, is_training=True):
+        self.batch_size = batch_size
         self.vocab_size = 22
-        self.max_story_length = 68
+        self.max_story_length = 65
         self.max_query_length = 4
+
+        self.window_size = 5
+        self.num_windows = self.max_story_length // self.window_size
 
         self.num_blocks = 20
         self.num_units_per_block = 100
@@ -29,18 +33,16 @@ class Model(object):
         answer_hot = tf.one_hot(answer, self.vocab_size)
 
         # Input Module
-        encoding_cell = tf.nn.rnn_cell.GRUCell(self.num_units_per_block, activation=prelu)
+        state = self.get_input(story_embedding)
 
         # Dynamic Memory
         memory_cell = DynamicMemoryCell(self.num_blocks, self.num_units_per_block, activation=prelu)
-
-        cell = tf.nn.rnn_cell.MultiRNNCell([encoding_cell, memory_cell])
-        output, last_state = tf.nn.dynamic_rnn(cell, story_embedding,
-            initial_state=cell.zero_state(batch_size, dtype=tf.float32),
-            sequence_length=story_length)
+        output, last_state = tf.nn.dynamic_rnn(memory_cell, state,
+            initial_state=memory_cell.zero_state(batch_size, dtype=tf.float32),
+            sequence_length=self.get_sequence_length(state))
 
         # Output Module
-        self.output = self.get_output(last_state[1], query_embedding)
+        self.output = self.get_output(last_state, query_embedding)
 
         # Loss
         with tf.variable_scope('Loss'):
@@ -66,6 +68,26 @@ class Model(object):
                 learning_rate=self.learning_rate,
                 clip_gradients=40.0,
                 optimizer='Adam')
+
+    def get_sequence_length(self, sequence):
+        used = tf.sign(tf.reduce_max(tf.abs(sequence), reduction_indices=2))
+        length = tf.reduce_sum(used, reduction_indices=1)
+        length = tf.cast(length, tf.int32)
+        return length
+
+    def get_input(self, story_embedding):
+        print(story_embedding)
+        story_embedding = tf.reshape(story_embedding,
+            shape=[self.batch_size, self.max_story_length, self.num_units_per_block])
+        print(story_embedding)
+        story_embedding_window = tf.reshape(story_embedding,
+            shape=[self.batch_size, self.num_windows, self.window_size, self.num_units_per_block])
+        print(story_embedding_window)
+        mask = tf.get_variable('mask',
+            shape=[self.window_size, self.num_units_per_block],
+            initializer=tf.contrib.layers.variance_scaling_initializer())
+        state = tf.reduce_sum(story_embedding_window * mask, reduction_indices=[2])
+        return state
 
     def get_output(self, last_state, query_embedding):
         """

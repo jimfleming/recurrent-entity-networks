@@ -38,5 +38,5 @@ def input_pipeline(filenames, batch_size, num_epochs=None, shuffle=False):
         tensors=records,
         batch_size=batch_size,
         capacity=capacity,
-        dynamic_pad=True)
+        dynamic_pad=False)
     return batches

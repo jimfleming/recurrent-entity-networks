@@ -16,7 +16,17 @@ class Trainer(object):
         self.model_test = model_test
 
     def train(self):
-        history_size = 1000
+        learning_rate_max = 1e-2
+
+        num_epochs = 200
+        batch_size = 32
+        epoch_decay_rate = 25
+        num_samples_per_epoch = 10000
+
+        num_batches_per_epoch = num_samples_per_epoch // batch_size
+        num_batches_per_decay = num_batches_per_epoch * epoch_decay_rate
+
+        history_size = num_batches_per_epoch
 
         loss_train_all = np.zeros(history_size)
         accuracy_train_all = np.zeros(history_size)
@@ -25,22 +35,20 @@ class Trainer(object):
         accuracy_test_all = np.zeros(history_size)
 
         try:
-            with tqdm(desc='Training...') as pbar:
+            total_steps = num_epochs * num_batches_per_epoch
+            with tqdm(desc='Training...', total=total_steps) as pbar:
                 step = 0
                 while not self.supervisor.should_stop():
-                    learning_rate = 1e-2 / 2**(step // 2500)
-                    _, loss_train, accuracy_train = self.sess.run([
+                    learning_rate = learning_rate_max / 2**(step // num_batches_per_decay)
+                    _, loss_train, accuracy_train, loss_test, accuracy_test = self.sess.run([
                         self.model_train.train_op,
                         self.model_train.loss,
                         self.model_train.accuracy,
+                        self.model_test.loss,
+                        self.model_test.accuracy
                     ], feed_dict={
                         self.model_train.learning_rate: learning_rate
                     })
-
-                    loss_test, accuracy_test = self.sess.run([
-                        self.model_test.loss,
-                        self.model_test.accuracy
-                    ])
 
                     loss_train_all[step%history_size] = loss_train
                     accuracy_train_all[step%history_size] = accuracy_train

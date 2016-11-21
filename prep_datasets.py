@@ -34,7 +34,7 @@ def parse_stories(lines):
 
 def save_dataset(stories, sentence_max_length, story_max_length, query_max_length, path):
     writer = tf.python_io.TFRecordWriter(path)
-    for story, query, answer in stories:
+    for story, query, answer in tqdm(stories):
         story_length = len(story)
         query_length = len(query)
 

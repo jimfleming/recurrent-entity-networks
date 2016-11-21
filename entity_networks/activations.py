@@ -6,7 +6,7 @@ import tensorflow as tf
 
 def prelu(features, initializer=tf.constant_initializer(1), name=None):
     """
-    Implementation of [parametric ReLU](https://arxiv.org/abs/1502.01852) borrowed from Keras.
+    Implementation of [Parametric ReLU](https://arxiv.org/abs/1502.01852) borrowed from Keras.
     """
     with tf.variable_scope(name or 'PReLU'):
         alpha = tf.get_variable('alpha',

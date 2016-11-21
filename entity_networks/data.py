@@ -33,11 +33,11 @@ def input_pipeline(filenames, batch_size, num_epochs=None, shuffle=False):
     filename_queue = tf.train.string_input_producer(filenames,
         num_epochs=num_epochs,
         shuffle=shuffle)
-    min_after_dequeue = 1000
+    min_after_dequeue = 9000
     capacity = min_after_dequeue + 10 * batch_size
     records = record_reader(filename_queue)
-    batches = tf.train.batch(records,
+    batches = tf.train.shuffle_batch(records,
         batch_size=batch_size,
-        capacity=capacity,
-        dynamic_pad=False)
+        min_after_dequeue=min_after_dequeue,
+        capacity=capacity)
     return batches

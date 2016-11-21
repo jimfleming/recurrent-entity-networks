@@ -21,9 +21,8 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
         return self._num_blocks * self._num_units_per_block
 
     def get_gate(self, inputs, state_j, key_j):
-        # XXX: We assume the gate is a scalar.
-        a = tf.reduce_sum(tf.mul(inputs, state_j), reduction_indices=[1])
-        b = tf.reduce_sum(tf.mul(inputs, tf.expand_dims(key_j, 0)), reduction_indices=[1])
+        a = tf.reduce_sum(inputs * state_j, reduction_indices=[1])
+        b = tf.reduce_sum(inputs * key_j, reduction_indices=[1])
         return tf.sigmoid(a + b)
 
     def get_candidate(self, state_j, key_j, inputs, U, V, W):

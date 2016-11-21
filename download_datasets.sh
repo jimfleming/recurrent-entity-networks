@@ -1,12 +1,12 @@
 #!/bin/bash
 
-BABI_TASKS=dataset/raw/babi_tasks_data_1_20_v1.2.tar.gz
-DIALOG_TASKS=dataset/raw/dialog_babi_tasks_data_1_6.tgz
-CHILDRENS_BOOK=dataset/raw/childrens_book_test.tgz
-MOVIE_DIALOG=dataset/raw/movie_dialog_dataset.tgz
-WIKIMOVIES=dataset/raw/wikimovies_dataset.tar.gz
-DIALOG_LL=dataset/raw/dialog_based_LL_dataset.tgz
-SIMPLE_QUESTIONS=dataset/raw/simple_questions_v2.tgz
+BABI_TASKS=datasets/babi_tasks_data_1_20_v1.2.tar.gz
+DIALOG_TASKS=datasets/dialog_babi_tasks_data_1_6.tgz
+CHILDRENS_BOOK=datasets/childrens_book_test.tgz
+MOVIE_DIALOG=datasets/movie_dialog_dataset.tgz
+WIKIMOVIES=datasets/wikimovies_dataset.tar.gz
+DIALOG_LL=datasets/dialog_based_LL_dataset.tgz
+SIMPLE_QUESTIONS=datasets/simple_questions_v2.tgz
 
 wget http://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2.tar.gz -O $BABI_TASKS
 wget https://scontent-sjc2-1.xx.fbcdn.net/t39.2365-6/13437784_1766606076905967_221214138_n.tgz -O $DIALOG_TASKS

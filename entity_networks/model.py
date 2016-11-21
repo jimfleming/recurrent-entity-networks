@@ -5,21 +5,17 @@ from __future__ import division
 import numpy as np
 import tensorflow as tf
 
-from keras.metrics import categorical_accuracy
-
 from entity_networks.activations import prelu
 from entity_networks.dynamic_memory_cell import DynamicMemoryCell
 
 class Model(object):
 
-    def __init__(self, story, query, answer, story_length, query_length, batch_size, is_training=True):
+    def __init__(self, story, query, answer, batch_size, is_training=True):
         self.batch_size = batch_size
-        self.vocab_size = 22
-        self.max_story_length = 65
-        self.max_query_length = 4
 
-        self.window_size = 5
-        self.num_windows = self.max_story_length // self.window_size
+        self.max_sentence_length = 7
+        self.max_story_length = 10
+        self.vocab_size = 22
 
         self.num_blocks = 20
         self.num_units_per_block = 100
@@ -30,7 +26,6 @@ class Model(object):
 
         story_embedding = tf.nn.embedding_lookup(embedding_params, story)
         query_embedding = tf.nn.embedding_lookup(embedding_params, query)
-        answer_hot = tf.one_hot(answer, self.vocab_size)
 
         # Input Module
         state = self.get_input(story_embedding)
@@ -47,12 +42,12 @@ class Model(object):
         # Loss
         with tf.variable_scope('Loss'):
             # XXX: We assume cross-entropy loss, even though the logits are never scaled.
-            cross_entropy = tf.nn.softmax_cross_entropy_with_logits(self.output, answer_hot)
+            cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(self.output, answer)
             self.loss = tf.reduce_mean(cross_entropy)
 
         # Accuracy
         with tf.variable_scope('accuracy'):
-            self.accuracy = categorical_accuracy(answer_hot, self.output)
+            self.accuracy = tf.contrib.metrics.accuracy(tf.argmax(self.output, 1), answer)
 
         # Summaries
         tf.contrib.layers.summarize_tensor(self.loss)
@@ -76,17 +71,12 @@ class Model(object):
         return length
 
     def get_input(self, story_embedding):
-        print(story_embedding)
         story_embedding = tf.reshape(story_embedding,
-            shape=[self.batch_size, self.max_story_length, self.num_units_per_block])
-        print(story_embedding)
-        story_embedding_window = tf.reshape(story_embedding,
-            shape=[self.batch_size, self.num_windows, self.window_size, self.num_units_per_block])
-        print(story_embedding_window)
+            shape=[-1, self.max_story_length, self.max_sentence_length, self.num_units_per_block])
         mask = tf.get_variable('mask',
-            shape=[self.window_size, self.num_units_per_block],
+            shape=[self.max_sentence_length, self.num_units_per_block],
             initializer=tf.contrib.layers.variance_scaling_initializer())
-        state = tf.reduce_sum(story_embedding_window * mask, reduction_indices=[2])
+        state = tf.reduce_sum(story_embedding * mask, reduction_indices=[2])
         return state
 
     def get_output(self, last_state, query_embedding):

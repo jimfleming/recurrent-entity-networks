@@ -12,20 +12,22 @@ def record_reader(filename_queue):
         "query": tf.FixedLenSequenceFeature([], dtype=tf.int64),
     }
     context_features = {
-        "story_length": tf.FixedLenFeature([], dtype=tf.int64),
-        "query_length": tf.FixedLenFeature([], dtype=tf.int64),
         "answer": tf.FixedLenFeature([], dtype=tf.int64),
     }
-    context_features, sequence_features = tf.parse_single_sequence_example(
-        serialized=serialized,
+    context_features, sequence_features = tf.parse_single_sequence_example(serialized,
         context_features=context_features,
         sequence_features=sequence_features)
-    story_length = context_features['story_length']
-    query_length = context_features['query_length']
     answer = context_features['answer']
     story = sequence_features['story']
     query = sequence_features['query']
-    return story, query, answer, story_length, query_length
+
+    max_sentence_length = 7
+    max_story_length = 10
+    max_query_length = 4
+
+    story.set_shape([max_story_length * max_sentence_length])
+    query.set_shape([max_query_length])
+    return story, query, answer
 
 def input_pipeline(filenames, batch_size, num_epochs=None, shuffle=False):
     filename_queue = tf.train.string_input_producer(filenames,
@@ -34,8 +36,7 @@ def input_pipeline(filenames, batch_size, num_epochs=None, shuffle=False):
     min_after_dequeue = 1000
     capacity = min_after_dequeue + 10 * batch_size
     records = record_reader(filename_queue)
-    batches = tf.train.batch(
-        tensors=records,
+    batches = tf.train.batch(records,
         batch_size=batch_size,
         capacity=capacity,
         dynamic_pad=False)

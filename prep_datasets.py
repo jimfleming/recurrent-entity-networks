@@ -1,21 +1,34 @@
+"""
+This module loads and pre-processes a bAbI dataset into TFRecords.
+"""
 from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
 import os
 import re
+import json
 import tarfile
 import numpy as np
 import tensorflow as tf
 
 from tqdm import tqdm
 
+SRC_DIR = 'datasets/'
+DEST_DIR = 'datasets/processed/'
+
 SPLIT_RE = re.compile('(\W+)?')
 
 def tokenize(sentence):
+    """
+    Tokenize a string by splitting on non-word characters and stripping whitespace.
+    """
     return [x.strip() for x in re.split(SPLIT_RE, sentence) if x.strip()]
 
 def parse_stories(lines):
+    """
+    Parse the bAbI task format described here: https://research.facebook.com/research/babi/
+    """
     data = []
     story = []
     for line in lines:
@@ -33,6 +46,9 @@ def parse_stories(lines):
     return data
 
 def save_dataset(stories, sentence_max_length, story_max_length, query_max_length, path):
+    """
+    Save the stories into TFRecords, padding each sentence to a consistent length.
+    """
     writer = tf.python_io.TFRecordWriter(path)
     for story, query, answer in tqdm(stories):
         story_length = len(story)
@@ -74,6 +90,9 @@ def tokenize_stories(stories, token_to_id):
     return story_ids
 
 def main():
+    if not os.path.exists(DEST_DIR):
+        os.makedirs(DEST_DIR)
+
     filenames = [
         'qa1_single-supporting-fact',
         # 'qa2_two-supporting-facts',
@@ -97,13 +116,13 @@ def main():
         # 'qa20_agents-motivations',
     ]
 
-    tar = tarfile.open('datasets/babi_tasks_data_1_20_v1.2.tar.gz')
+    tar = tarfile.open(os.path.join(SRC_DIR, 'babi_tasks_data_1_20_v1.2.tar.gz'))
     for filename in tqdm(filenames):
         stories_path_train = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_train.txt')
         stories_path_test = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_test.txt')
 
-        dataset_path_train = os.path.join('datasets/processed/', filename + '_train.tfrecords')
-        dataset_path_test = os.path.join('datasets/processed/', filename + '_test.tfrecords')
+        dataset_path_train = os.path.join(DEST_DIR, filename + '_train.tfrecords')
+        dataset_path_test = os.path.join(DEST_DIR, filename + '_test.tfrecords')
 
         f_train = tar.extractfile(stories_path_train)
         f_test = tar.extractfile(stories_path_test)
@@ -118,6 +137,9 @@ def main():
         vocab = sorted(set(tokens_all))
         vocab_size = len(vocab) + 1 # reserve zero for padding
         token_to_id = {token: i+1 for i, token in enumerate(vocab)}
+
+        with open('tokens.json', 'w') as f:
+            json.dump(token_to_id, f)
 
         stories_train = tokenize_stories(stories_train, token_to_id)
         stories_test = tokenize_stories(stories_test, token_to_id)

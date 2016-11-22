@@ -40,22 +40,11 @@ def main(_):
 
     max_steps = FLAGS.num_epochs*dataset_train.size
 
-    monitors = [
-        tf.contrib.learn.monitors.StepCounter(every_n_steps=1, output_dir=FLAGS.logdir),
-        tf.contrib.learn.monitors.PrintTensor([
-            model_train.loss.name,
-            model_train.accuracy.name,
-            model_test.loss.name,
-            model_test.accuracy.name
-        ], every_n=1, first_n=1)
-    ]
-
     tf.contrib.learn.train(
         graph=tf.get_default_graph(),
         output_dir=FLAGS.logdir,
         train_op=model_train.train_op,
         loss_op=model_train.loss,
-        monitors=monitors,
         supervisor_save_summaries_steps=1,
         log_every_steps=1,
         max_steps=max_steps)

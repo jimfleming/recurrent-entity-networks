@@ -75,11 +75,11 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
 
                 # Equation 4: h_j <- h_j + g_j * h_j^~
                 # Perform an update of the hidden state (memory).
-                state_j_next = state_j + tf.expand_dims(gate_j, -1) * candidate_j
+                state_j_next = state_j + tf.expand_dims(gate_j, 1) * candidate_j
 
                 # Equation 5: h_j <- h_j / \norm{h_j}
                 # Forgot previous memories by normalization.
-                state_j_next = tf.nn.l2_normalize(state_j_next, -1)
+                state_j_next = tf.nn.l2_normalize(state_j_next, 1)
 
                 next_states.append(state_j_next)
 

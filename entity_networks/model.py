@@ -40,9 +40,8 @@ class Model(object):
         encoded_story = self.encode_input(story_embedding * story_mask, scope='StoryEncoding')
         encoded_query = self.encode_input(query_embedding * query_mask, scope='QueryEncoding')
 
-        sequence_length = self.get_sequence_length(encoded_story)
-
         # Dynamic Memory
+        sequence_length = self.get_sequence_length(encoded_story)
         cell = DynamicMemoryCell(self.num_blocks, self.embedding_size,
             activation=self.prelu_ones)
         initial_state = cell.zero_state(dataset.batch_size, dtype=tf.float32)
@@ -59,7 +58,7 @@ class Model(object):
             self.loss = tf.reduce_mean(cross_entropy)
 
         # Accuracy
-        with tf.variable_scope('accuracy'):
+        with tf.variable_scope('Accuracy'):
             self.accuracy = tf.contrib.metrics.accuracy(tf.argmax(self.output, 1), dataset.answer_batch)
 
         # Summaries
@@ -68,10 +67,12 @@ class Model(object):
 
         # Optimization
         if is_training:
-            num_steps_per_decay = (dataset.size // dataset.batch_size) * 25
-
             self.global_step = tf.contrib.framework.get_or_create_global_step()
-            self.learning_rate = 1e-2 / 2**(tf.to_float(self.global_step) // num_steps_per_decay)
+
+            with tf.variable_scope('LearningRate'):
+                num_steps_per_decay = dataset.num_batches * 25
+                self.learning_rate = 1e-2 / 2**(tf.to_float(self.global_step) // num_steps_per_decay)
+
             tf.contrib.layers.summarize_tensor(self.learning_rate)
 
             self.train_op = tf.contrib.layers.optimize_loss(
@@ -116,14 +117,14 @@ class Model(object):
         Implementation of Section 2.3, Equation 6. This module is also described in more detail here:
         [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852).
         """
-        last_state = tf.reshape(last_state, [-1, self.num_blocks, self.embedding_size])
+        last_state = tf.pack(tf.split(1, self.num_blocks, last_state), axis=1)
 
         # Use query to attend over memories (hidden states of dynamic memory cell blocks)
-        p = tf.reduce_sum(last_state * encoded_query, reduction_indices=[2], keep_dims=True)
+        p = tf.reduce_sum(last_state * encoded_query, reduction_indices=[2])
         p = tf.nn.softmax(p)
 
         # Weight memories by attention vectors
-        u = tf.reduce_sum(last_state * p, reduction_indices=[1])
+        u = tf.reduce_sum(last_state * tf.expand_dims(p, 2), reduction_indices=[1])
 
         # R acts as the decoder matrix to convert from internal state to the output vocabulary size.
         R = tf.get_variable('R',

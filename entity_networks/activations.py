@@ -4,7 +4,7 @@ from __future__ import division
 
 import tensorflow as tf
 
-def prelu(features, initializer=tf.constant_initializer(1), name=None):
+def prelu(features, initializer=None, name=None):
     """
     Implementation of [Parametric ReLU](https://arxiv.org/abs/1502.01852) borrowed from Keras.
     """

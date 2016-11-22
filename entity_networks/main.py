@@ -9,7 +9,6 @@ import random; random.seed(SEED)
 import numpy as np; np.random.seed(SEED)
 import tensorflow as tf; tf.set_random_seed(SEED)
 
-from entity_networks.trainer import Trainer
 from entity_networks.model import Model
 from entity_networks.dataset import Dataset
 

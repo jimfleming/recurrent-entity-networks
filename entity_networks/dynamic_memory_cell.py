@@ -50,6 +50,17 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
         # Split the hidden state into blocks (each U, V, W are shared across blocks).
         state = tf.split(1, self._num_blocks, state)
 
+        U = tf.get_variable('U',
+            shape=[self._num_units_per_block, self._num_units_per_block],
+            initializer=tf.random_normal_initializer(0.1))
+        V = tf.get_variable('V',
+            shape=[self._num_units_per_block, self._num_units_per_block],
+            initializer=tf.random_normal_initializer(0.1))
+        W = tf.get_variable('W',
+            shape=[self._num_units_per_block, self._num_units_per_block],
+            initializer=tf.random_normal_initializer(0.1))
+
+        # TODO: vectorize each block (don't split/concat)
         with tf.variable_scope(scope or type(self).__name__):
             next_states = []
             for j, state_j in enumerate(state): # Hidden State (j)
@@ -62,24 +73,15 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
                     gate_j = self.get_gate(inputs, state_j, key_j)
 
                 with tf.variable_scope('Candidate', reuse=reuse):
-                    U = tf.get_variable('U',
-                        shape=[self._num_units_per_block, self._num_units_per_block],
-                        initializer=tf.random_normal_initializer(0.1))
-                    V = tf.get_variable('V',
-                        shape=[self._num_units_per_block, self._num_units_per_block],
-                        initializer=tf.random_normal_initializer(0.1))
-                    W = tf.get_variable('W',
-                        shape=[self._num_units_per_block, self._num_units_per_block],
-                        initializer=tf.random_normal_initializer(0.1))
                     candidate_j = self.get_candidate(state_j, key_j, inputs, U, V, W)
 
                 # Equation 4: h_j <- h_j + g_j * h_j^~
                 # Perform an update of the hidden state (memory).
-                state_j_next = state_j + tf.expand_dims(gate_j, 1) * candidate_j
+                state_j_next = state_j + tf.expand_dims(gate_j, -1) * candidate_j
 
                 # Equation 5: h_j <- h_j / \norm{h_j}
                 # Forgot previous memories by normalization.
-                state_j_next = tf.nn.l2_normalize(state_j_next, 1)
+                state_j_next = tf.nn.l2_normalize(state_j_next, -1)
 
                 next_states.append(state_j_next)
 

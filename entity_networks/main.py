@@ -9,9 +9,9 @@ import random; random.seed(SEED)
 import numpy as np; np.random.seed(SEED)
 import tensorflow as tf; tf.set_random_seed(SEED)
 
-from entity_networks.entity_network import EntityNetworkModel
 from entity_networks.trainer import Trainer
-from entity_networks.data import input_pipeline
+from entity_networks.model import Model
+from entity_networks.dataset import Dataset
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -21,35 +21,44 @@ tf.app.flags.DEFINE_string('logdir', 'logs/{}'.format(int(time.time())), 'Log di
 
 def main(_):
     with tf.device('/cpu:0'):
-        story_train, query_train, answer_train = input_pipeline(
+        dataset_train = Dataset(
             filenames=['datasets/processed/qa1_single-supporting-fact_train.tfrecords'],
             batch_size=FLAGS.batch_size,
-            num_epochs=FLAGS.num_epochs,
             shuffle=True)
-        story_test, query_test, answer_test = input_pipeline(
+        dataset_test = Dataset(
             filenames=['datasets/processed/qa1_single-supporting-fact_test.tfrecords'],
             batch_size=FLAGS.batch_size,
             shuffle=False)
 
     with tf.variable_scope('model'):
-        model_train = EntityNetworkModel(story_train, query_train, answer_train,
-            batch_size=FLAGS.batch_size,
-            is_training=True)
+        model_train = Model(dataset_train, is_training=True)
 
     with tf.variable_scope('model', reuse=True):
-        model_test = EntityNetworkModel(story_test, query_test, answer_test,
-            batch_size=FLAGS.batch_size,
-            is_training=False)
+        model_test = Model(dataset_test, is_training=False)
 
-    supervisor = tf.train.Supervisor(
-        global_step=model_train.global_step,
-        logdir=FLAGS.logdir,
-        save_summaries_secs=1)
+    print('Training model with {} parameters'.format(model_train.num_parameters))
 
-    with supervisor.managed_session() as sess:
-        print('Training model with {} parameters'.format(model_train.num_parameters))
-        trainer = Trainer(supervisor, sess, model_train, model_test)
-        trainer.train()
+    max_steps = FLAGS.num_epochs*dataset_train.size
+
+    monitors = [
+        tf.contrib.learn.monitors.StepCounter(every_n_steps=1, output_dir=FLAGS.logdir),
+        tf.contrib.learn.monitors.PrintTensor([
+            model_train.loss.name,
+            model_train.accuracy.name,
+            model_test.loss.name,
+            model_test.accuracy.name
+        ], every_n=1, first_n=1)
+    ]
+
+    tf.contrib.learn.train(
+        graph=tf.get_default_graph(),
+        output_dir=FLAGS.logdir,
+        train_op=model_train.train_op,
+        loss_op=model_train.loss,
+        monitors=monitors,
+        supervisor_save_summaries_steps=1,
+        log_every_steps=1,
+        max_steps=max_steps)
 
 if __name__ == '__main__':
     tf.app.run()

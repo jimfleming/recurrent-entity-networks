@@ -4,46 +4,86 @@ from __future__ import division
 
 import tensorflow as tf
 
-def record_reader(filename_queue):
-    reader = tf.TFRecordReader()
-    _, serialized = reader.read(filename_queue)
-    sequence_features = {
-        "story": tf.FixedLenSequenceFeature([], dtype=tf.int64),
-        "query": tf.FixedLenSequenceFeature([], dtype=tf.int64),
-    }
-    context_features = {
-        "answer": tf.FixedLenFeature([], dtype=tf.int64),
-    }
-    context_features, sequence_features = tf.parse_single_sequence_example(serialized,
-        context_features=context_features,
-        sequence_features=sequence_features)
-    answer = context_features['answer']
-    story = sequence_features['story']
-    query = sequence_features['query']
+class Dataset(object):
 
-    # TODO: Turn both functions into class methods with public properties
-    # to the story, query and answer as well as other vars.
-    max_sentence_length = 7
-    max_story_length = 10
-    max_query_length = 4
+    def __init__(self, filenames, batch_size, shuffle=False):
+        self._batch_size = batch_size
+        self._size = 10000
+        self._vocab_size = 22
+        self._max_sentence_length = 7
+        self._max_story_length = 10
+        self._max_query_length = 4
 
-    story.set_shape([max_story_length * max_sentence_length])
-    query.set_shape([max_query_length])
+        filename_queue = tf.train.string_input_producer(filenames, shuffle=shuffle)
+        capacity = self._size + 100 * batch_size
 
-    story = tf.reshape(story, [max_story_length, max_sentence_length])
-    query = tf.reshape(query, [1, max_query_length])
+        reader = tf.TFRecordReader()
+        _, serialized = reader.read(filename_queue)
+        sequence_features = {
+            "story": tf.FixedLenSequenceFeature([], dtype=tf.int64),
+            "query": tf.FixedLenSequenceFeature([], dtype=tf.int64),
+        }
+        context_features = {
+            "answer": tf.FixedLenFeature([], dtype=tf.int64),
+        }
+        context_features, sequence_features = tf.parse_single_sequence_example(serialized,
+            context_features=context_features,
+            sequence_features=sequence_features)
 
-    return story, query, answer
+        story = sequence_features['story']
+        query = sequence_features['query']
+        answer = context_features['answer']
 
-def input_pipeline(filenames, batch_size, num_epochs=None, shuffle=False):
-    filename_queue = tf.train.string_input_producer(filenames,
-        num_epochs=num_epochs,
-        shuffle=shuffle)
-    min_after_dequeue = 10000
-    capacity = min_after_dequeue + 10 * batch_size
-    records = record_reader(filename_queue)
-    batches = tf.train.shuffle_batch(records,
-        batch_size=batch_size,
-        min_after_dequeue=min_after_dequeue,
-        capacity=capacity)
-    return batches
+        story.set_shape([self._max_story_length * self._max_sentence_length])
+        query.set_shape([self._max_query_length])
+
+        story = tf.reshape(story, [self._max_story_length, self._max_sentence_length])
+        query = tf.reshape(query, [1, self._max_query_length])
+
+        if shuffle:
+            self._story_batch, self._query_batch, self._answer_batch = \
+                tf.train.shuffle_batch([story, query, answer],
+                    batch_size=batch_size,
+                    min_after_dequeue=self._size,
+                    capacity=capacity)
+        else:
+            self._story_batch, self._query_batch, self._answer_batch = \
+                tf.train.batch([story, query, answer],
+                    batch_size=batch_size,
+                    capacity=capacity)
+
+    @property
+    def story_batch(self):
+        return self._story_batch
+
+    @property
+    def query_batch(self):
+        return self._query_batch
+
+    @property
+    def answer_batch(self):
+        return self._answer_batch
+
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+    @property
+    def max_sentence_length(self):
+        return self._max_sentence_length
+
+    @property
+    def max_story_length(self):
+        return self._max_story_length
+
+    @property
+    def max_query_length(self):
+        return self._max_query_length
+
+    @property
+    def vocab_size(self):
+        return self._vocab_size
+
+    @property
+    def size(self):
+        return self._size

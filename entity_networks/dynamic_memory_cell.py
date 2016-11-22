@@ -6,6 +6,10 @@ import numpy as np
 import tensorflow as tf
 
 class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
+    """
+    Implementation of a dynamic memory cell as a gated recurrent network.
+    The cell's hidden state is divided into blocks and each block's weights are tied.
+    """
 
     def __init__(self, num_blocks, num_units_per_block, activation=tf.identity):
         self._num_blocks = num_blocks # M
@@ -21,45 +25,61 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
         return self._num_blocks * self._num_units_per_block
 
     def get_gate(self, inputs, state_j, key_j):
+        """
+        Implements the gate (a scalar for each block). Equation 2:
+
+        g_j <- \sigma(s_t^T h_j + s_t^T w_j)
+        """
         a = tf.reduce_sum(inputs * state_j, reduction_indices=[1])
         b = tf.reduce_sum(inputs * key_j, reduction_indices=[1])
         return tf.sigmoid(a + b)
 
     def get_candidate(self, state_j, key_j, inputs, U, V, W):
-        h_j_U = tf.matmul(state_j, U)
-        s_t_W = tf.matmul(inputs, W)
-        w_j_V = tf.matmul(tf.expand_dims(key_j, -1), V, transpose_a=True)
-        return self._activation(h_j_U + w_j_V + s_t_W)
+        """
+        Represents the new memory candidate that will be weighted by the
+        gate value and combined with the existing memory. Equation 3:
+
+        h_j^~ <- \phi(U h_j + V w_j + W s_t)
+        """
+        state_U = tf.matmul(state_j, U)
+        inputs_W = tf.matmul(inputs, W)
+        key_V = tf.matmul(tf.expand_dims(key_j, 0), V)
+        return self._activation(state_U + key_V + inputs_W)
 
     def __call__(self, inputs, state, scope=None):
+        # Split the hidden state into blocks (each U, V, W are shared across blocks).
         state = tf.split(1, self._num_blocks, state)
 
-        # split into blocks (U, V, W are shared)
         with tf.variable_scope(scope or type(self).__name__):
             next_states = []
             for j, state_j in enumerate(state): # Hidden State (j)
                 key_j = tf.get_variable('key_{}'.format(j),
                     shape=[self._num_units_per_block],
-                    initializer=tf.contrib.layers.variance_scaling_initializer()) # Key Vector (j)
+                    initializer=tf.random_normal_initializer(0.1))
 
-                reuse = False if j == 0 else True
+                reuse = True if j > 0 else False
                 with tf.variable_scope('Gate', reuse=reuse):
-                    gate_j = self.get_gate(inputs, state_j, key_j) # 2) Gate
+                    gate_j = self.get_gate(inputs, state_j, key_j)
 
                 with tf.variable_scope('Candidate', reuse=reuse):
                     U = tf.get_variable('U',
                         shape=[self._num_units_per_block, self._num_units_per_block],
-                        initializer=tf.contrib.layers.variance_scaling_initializer())
+                        initializer=tf.random_normal_initializer(0.1))
                     V = tf.get_variable('V',
                         shape=[self._num_units_per_block, self._num_units_per_block],
-                        initializer=tf.contrib.layers.variance_scaling_initializer())
+                        initializer=tf.random_normal_initializer(0.1))
                     W = tf.get_variable('W',
                         shape=[self._num_units_per_block, self._num_units_per_block],
-                        initializer=tf.contrib.layers.variance_scaling_initializer())
-                    candidate = self.get_candidate(state_j, key_j, inputs, U, V, W) # 3) Candidate
+                        initializer=tf.random_normal_initializer(0.1))
+                    candidate_j = self.get_candidate(state_j, key_j, inputs, U, V, W)
 
-                state_j_next = state_j + tf.expand_dims(gate_j, -1) * candidate # 4) Update
-                state_j_next = tf.nn.l2_normalize(state_j_next, -1) # 5) Forget (via normalization)
+                # Equation 4: h_j <- h_j + g_j * h_j^~
+                # Perform an update of the hidden state (memory).
+                state_j_next = state_j + tf.expand_dims(gate_j, -1) * candidate_j
+
+                # Equation 5: h_j <- h_j / \norm{h_j}
+                # Forgot previous memories by normalization.
+                state_j_next = tf.nn.l2_normalize(state_j_next, -1)
 
                 next_states.append(state_j_next)
 

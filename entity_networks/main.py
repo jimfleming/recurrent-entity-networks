@@ -11,6 +11,7 @@ import tensorflow as tf; tf.set_random_seed(SEED)
 
 from entity_networks.model import Model
 from entity_networks.dataset import Dataset
+from entity_networks.monitors import ProgressMonitor
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -29,15 +30,28 @@ def main(_):
             batch_size=FLAGS.batch_size,
             shuffle=False)
 
-    with tf.variable_scope('model'):
+    with tf.variable_scope('Model'):
         model_train = Model(dataset_train, is_training=True)
 
-    with tf.variable_scope('model', reuse=True):
+    # TODO: use validation monitor
+    with tf.variable_scope('Model', reuse=True):
         model_test = Model(dataset_test, is_training=False)
 
+    print('Saving logs to {}'.format(FLAGS.logdir))
     print('Training model with {} parameters'.format(model_train.num_parameters))
 
-    max_steps = FLAGS.num_epochs*dataset_train.size
+    max_steps = FLAGS.num_epochs*dataset_train.num_batches
+    monitors = [
+        tf.contrib.learn.monitors.SummarySaver(
+            summary_op=tf.merge_all_summaries(),
+            save_steps=1,
+            output_dir=FLAGS.logdir),
+        ProgressMonitor(tensor_names={
+            'Loss (Train)': model_train.loss.name,
+            'Loss (Test)': model_test.loss.name,
+            'LR': model_train.learning_rate.name,
+        }, every_n_steps=1000, first_n_steps=0), # TODO: fix every N: logs too often
+    ]
 
     tf.contrib.learn.train(
         graph=tf.get_default_graph(),
@@ -45,6 +59,7 @@ def main(_):
         train_op=model_train.train_op,
         loss_op=model_train.loss,
         supervisor_save_summaries_steps=1,
+        monitors=monitors,
         log_every_steps=1,
         max_steps=max_steps)
 

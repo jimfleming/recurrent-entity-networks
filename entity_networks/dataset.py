@@ -87,3 +87,7 @@ class Dataset(object):
     @property
     def size(self):
         return self._size
+
+    @property
+    def num_batches(self):
+        return self._size // self._batch_size

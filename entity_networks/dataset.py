@@ -2,40 +2,31 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
+import json
 import tensorflow as tf
-
-MAX_SENTENCE_LENGTH = 7
-MAX_STORY_LENGTH = 10
-MAX_QUERY_LENGTH = 4
-
-DATASET_SIZE = 10000
-VOCAB_SIZE = 22
-
-def record_reader(filename_queue):
-    reader = tf.TFRecordReader()
-    _, serialized = reader.read(filename_queue)
-
-    features = tf.parse_single_example(serialized, features={
-        "story": tf.FixedLenFeature([MAX_STORY_LENGTH, MAX_SENTENCE_LENGTH], dtype=tf.int64),
-        "query": tf.FixedLenFeature([1, MAX_QUERY_LENGTH], dtype=tf.int64),
-        "answer": tf.FixedLenFeature([], dtype=tf.int64),
-    })
-
-    story = features['story']
-    query = features['query']
-    answer = features['answer']
-
-    return story, query, answer
 
 class Dataset(object):
 
-    def __init__(self, filename, batch_size, shuffle=False):
+    def __init__(self, path, name, batch_size, shuffle=False, num_epochs=None):
         self._batch_size = batch_size
 
-        filename_queue = tf.train.string_input_producer([filename], shuffle=shuffle)
-        records = record_reader(filename_queue)
+        with open(path) as f:
+            metadata = json.load(f)
 
-        min_after_dequeue = DATASET_SIZE
+        self._max_sentence_length = metadata['max_sentence_length']
+        self._max_story_length = metadata['max_story_length']
+        self._max_query_length = metadata['max_query_length']
+
+        self._dataset_size = metadata['dataset_size']
+        self._vocab_size = metadata['vocab_size']
+
+        filename = metadata['datasets'][name]
+        filename_queue = tf.train.string_input_producer([filename],
+            num_epochs=num_epochs,
+            shuffle=shuffle)
+        records = self.record_reader(filename_queue)
+
+        min_after_dequeue = self._dataset_size
         capacity = min_after_dequeue + 100 * batch_size
 
         if shuffle:
@@ -49,6 +40,22 @@ class Dataset(object):
                 tf.train.batch(records,
                     batch_size=batch_size,
                     capacity=capacity)
+
+    def record_reader(self, filename_queue):
+        reader = tf.TFRecordReader()
+        _, serialized = reader.read(filename_queue)
+
+        features = tf.parse_single_example(serialized, features={
+            "story": tf.FixedLenFeature([self._max_story_length, self._max_sentence_length], dtype=tf.int64),
+            "query": tf.FixedLenFeature([1, self._max_query_length], dtype=tf.int64),
+            "answer": tf.FixedLenFeature([], dtype=tf.int64),
+        })
+
+        story = features['story']
+        query = features['query']
+        answer = features['answer']
+
+        return story, query, answer
 
     @property
     def story_batch(self):
@@ -68,24 +75,24 @@ class Dataset(object):
 
     @property
     def max_sentence_length(self):
-        return MAX_SENTENCE_LENGTH
+        return self._max_sentence_length
 
     @property
     def max_story_length(self):
-        return MAX_STORY_LENGTH
+        return self._max_story_length
 
     @property
     def max_query_length(self):
-        return MAX_QUERY_LENGTH
+        return self._max_query_length
 
     @property
     def vocab_size(self):
-        return VOCAB_SIZE
+        return self._vocab_size
 
     @property
     def size(self):
-        return DATASET_SIZE
+        return self._dataset_size
 
     @property
     def num_batches(self):
-        return DATASET_SIZE // self._batch_size
+        return self._dataset_size // self._batch_size

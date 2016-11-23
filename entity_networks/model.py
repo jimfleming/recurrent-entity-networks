@@ -33,7 +33,6 @@ class Model(object):
         query_embedding = tf.nn.embedding_lookup(embedding_params, dataset.query_batch)
 
         # Mask embeddings
-        # TODO: check embeddings are correctly masked
         story_mask = self.get_padding_mask(dataset.story_batch)
         query_mask = self.get_padding_mask(dataset.query_batch)
 
@@ -73,11 +72,7 @@ class Model(object):
             with tf.variable_scope('LearningRate'):
                 num_steps_per_decay = dataset.num_batches * 25
                 self.learning_rate = 1e-2 / 2**(tf.to_float(self.global_step) // num_steps_per_decay)
-
             tf.contrib.layers.summarize_tensor(self.learning_rate)
-            tf.contrib.layers.summarize_tensor(embedding_params)
-            tf.contrib.layers.summarize_variables(name_filter='alpha')
-            tf.contrib.layers.summarize_activations(name_filter='PReLU')
 
             self.train_op = tf.contrib.layers.optimize_loss(
                 self.loss,
@@ -124,7 +119,7 @@ class Model(object):
         with tf.variable_scope(scope, 'Output'):
             last_state = tf.pack(tf.split(1, self.num_blocks, last_state), axis=1)
 
-            # Use query to attend over memories (hidden states of dynamic memory cell blocks)
+            # Use the query to attend over memories (hidden states of dynamic memory cell blocks)
             p = tf.reduce_sum(last_state * encoded_query, reduction_indices=[2])
             p = tf.nn.softmax(p)
 

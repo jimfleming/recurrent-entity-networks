@@ -20,11 +20,11 @@ tf.app.flags.DEFINE_string('logdir', 'logs/{}'.format(int(time.time())), 'Log di
 def main(_):
     with tf.device('/cpu:0'):
         dataset_train = Dataset(
-            filenames=['datasets/processed/qa1_single-supporting-fact_train.tfrecords'],
+            filename='datasets/processed/qa1_single-supporting-fact_train.tfrecords',
             batch_size=FLAGS.batch_size,
             shuffle=True)
         dataset_test = Dataset(
-            filenames=['datasets/processed/qa1_single-supporting-fact_test.tfrecords'],
+            filename='datasets/processed/qa1_single-supporting-fact_test.tfrecords',
             batch_size=FLAGS.batch_size,
             shuffle=False)
 

@@ -6,6 +6,7 @@ import time
 import random
 import numpy as np
 import tensorflow as tf
+tf.logging.set_verbosity(tf.logging.INFO)
 
 from entity_networks.model import Model
 from entity_networks.dataset import Dataset
@@ -29,13 +30,13 @@ def main(_):
         model = Model(dataset, is_training=False)
 
     eval_dict = {
-        'loss': model.loss,
-        'accuracy': model.accuracy,
+        model.loss.name: model.loss,
+        model.accuracy.name: model.accuracy,
     }
 
     tf.contrib.learn.evaluate(
         graph=tf.get_default_graph(),
-        output_dir=None,
+        output_dir=FLAGS.logdir,
         checkpoint_path=FLAGS.checkpoint_path,
         eval_dict=eval_dict,
         log_every_steps=1)

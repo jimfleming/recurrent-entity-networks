@@ -6,6 +6,7 @@ import time
 import random
 import numpy as np
 import tensorflow as tf
+tf.logging.set_verbosity(tf.logging.INFO)
 
 from entity_networks.model import Model
 from entity_networks.dataset import Dataset
@@ -35,6 +36,7 @@ def main(_):
         model_test = Model(dataset_test, is_training=False)
 
     print('Model has {} parameters'.format(model_train.num_parameters))
+    print('Dataset Story: {}, Sentence: {}, Query: {}'.format(dataset.max_story_length, dataset.max_sentence_length, dataset.max_query_length))
     print('Saving logs to {}'.format(FLAGS.logdir))
 
     # Setup monitors for progress reporting

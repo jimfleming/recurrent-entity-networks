@@ -7,7 +7,7 @@ import tensorflow as tf
 
 class Dataset(object):
 
-    def __init__(self, path, name, batch_size, shuffle=False, num_epochs=None):
+    def __init__(self, path, name, batch_size, shuffle=False, num_epochs=None, num_threads=4):
         self._batch_size = batch_size
 
         with open(path) as f:
@@ -24,20 +24,20 @@ class Dataset(object):
         filename_queue = tf.train.string_input_producer([filename],
             num_epochs=num_epochs,
             shuffle=shuffle)
-        records = self.record_reader(filename_queue)
+        records = [self.record_reader(filename_queue) for _ in range(num_threads)]
 
         min_after_dequeue = self._dataset_size
         capacity = min_after_dequeue + 100 * batch_size
 
         if shuffle:
             self._story_batch, self._query_batch, self._answer_batch = \
-                tf.train.shuffle_batch(records,
+                tf.train.shuffle_batch_join(records,
                     batch_size=batch_size,
                     min_after_dequeue=min_after_dequeue,
                     capacity=capacity)
         else:
             self._story_batch, self._query_batch, self._answer_batch = \
-                tf.train.batch(records,
+                tf.train.batch_join(records,
                     batch_size=batch_size,
                     capacity=capacity)
 

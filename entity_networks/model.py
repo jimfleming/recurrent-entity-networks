@@ -27,12 +27,13 @@ class Model(object):
 
         embedding_params = tf.get_variable('embedding_params',
             shape=[dataset.vocab_size, self.embedding_size],
-            initializer=tf.random_uniform_initializer(minval=-1.0, maxval=1.0))
+            initializer=tf.random_normal_initializer(stddev=0.1))
 
         story_embedding = tf.nn.embedding_lookup(embedding_params, dataset.story_batch)
         query_embedding = tf.nn.embedding_lookup(embedding_params, dataset.query_batch)
 
         # Mask embeddings
+        # TODO: check embeddings are correctly masked
         story_mask = self.get_padding_mask(dataset.story_batch)
         query_mask = self.get_padding_mask(dataset.query_batch)
 
@@ -74,6 +75,9 @@ class Model(object):
                 self.learning_rate = 1e-2 / 2**(tf.to_float(self.global_step) // num_steps_per_decay)
 
             tf.contrib.layers.summarize_tensor(self.learning_rate)
+            tf.contrib.layers.summarize_tensor(embedding_params)
+            tf.contrib.layers.summarize_variables(name_filter='alpha')
+            tf.contrib.layers.summarize_activations(name_filter='PReLU')
 
             self.train_op = tf.contrib.layers.optimize_loss(
                 self.loss,
@@ -86,16 +90,16 @@ class Model(object):
         """
         This is a hacky way of determining the actual length of a sequence that has been padded with zeros.
         """
-        used = tf.sign(tf.reduce_max(tf.abs(sequence), reduction_indices=2))
-        length = tf.cast(tf.reduce_sum(used, reduction_indices=1), tf.int32)
+        used = tf.sign(tf.reduce_max(tf.abs(sequence), reduction_indices=[-1]))
+        length = tf.cast(tf.reduce_sum(used, reduction_indices=[-1]), tf.int32)
         return length
 
-    def get_padding_mask(self, inputs):
+    def get_padding_mask(self, sequence):
         """
         This is a hacky way of masking the padded sentence embeddings.
         """
-        inputs = tf.reduce_sum(inputs, reduction_indices=[-1], keep_dims=True)
-        mask = tf.to_float(tf.greater(inputs, 0))
+        sequence = tf.reduce_sum(sequence, reduction_indices=[-1], keep_dims=True)
+        mask = tf.to_float(tf.greater(sequence, 0))
         return tf.expand_dims(mask, -1)
 
     def encode_input(self, embedding, scope=None):
@@ -104,7 +108,7 @@ class Model(object):
         in [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852) as Position Encoding (PE). The mask allows
         the ordering of words in a sentence to affect the encoding.
         """
-        with tf.variable_scope(scope or 'Encoding'):
+        with tf.variable_scope(scope, 'Encoding'):
             _, _, max_sentence_length, _ = embedding.get_shape().as_list()
             positional_mask = tf.get_variable('positional_mask',
                 shape=[max_sentence_length, 1],
@@ -112,30 +116,31 @@ class Model(object):
             encoded_input = tf.reduce_sum(embedding * positional_mask, reduction_indices=[2])
             return encoded_input
 
-    def get_output(self, last_state, encoded_query):
+    def get_output(self, last_state, encoded_query, scope=None):
         """
         Implementation of Section 2.3, Equation 6. This module is also described in more detail here:
         [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852).
         """
-        last_state = tf.pack(tf.split(1, self.num_blocks, last_state), axis=1)
+        with tf.variable_scope(scope, 'Output'):
+            last_state = tf.pack(tf.split(1, self.num_blocks, last_state), axis=1)
 
-        # Use query to attend over memories (hidden states of dynamic memory cell blocks)
-        p = tf.reduce_sum(last_state * encoded_query, reduction_indices=[2])
-        p = tf.nn.softmax(p)
+            # Use query to attend over memories (hidden states of dynamic memory cell blocks)
+            p = tf.reduce_sum(last_state * encoded_query, reduction_indices=[2])
+            p = tf.nn.softmax(p)
 
-        # Weight memories by attention vectors
-        u = tf.reduce_sum(last_state * tf.expand_dims(p, 2), reduction_indices=[1])
+            # Weight memories by attention vectors
+            u = tf.reduce_sum(last_state * tf.expand_dims(p, 2), reduction_indices=[1])
 
-        # R acts as the decoder matrix to convert from internal state to the output vocabulary size.
-        R = tf.get_variable('R',
-            shape=[self.embedding_size, self.dataset.vocab_size],
-            initializer=tf.random_normal_initializer(stddev=0.1))
-        H = tf.get_variable('H',
-            shape=[self.embedding_size, self.embedding_size],
-            initializer=tf.random_normal_initializer(stddev=0.1))
+            # R acts as the decoder matrix to convert from internal state to the output vocabulary size.
+            R = tf.get_variable('R',
+                shape=[self.embedding_size, self.dataset.vocab_size],
+                initializer=tf.random_normal_initializer(stddev=0.1))
+            H = tf.get_variable('H',
+                shape=[self.embedding_size, self.embedding_size],
+                initializer=tf.random_normal_initializer(stddev=0.1))
 
-        y = tf.matmul(self.prelu_ones(tf.squeeze(encoded_query) + tf.matmul(u, H)), R)
-        return y
+            y = tf.matmul(self.prelu_ones(tf.squeeze(encoded_query) + tf.matmul(u, H)), R)
+            return y
 
     @property
     def num_parameters(self):

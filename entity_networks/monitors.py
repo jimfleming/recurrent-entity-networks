@@ -9,12 +9,13 @@ from tqdm import tqdm
 
 class ProgressMonitor(tf.contrib.learn.monitors.EveryN):
 
-    def __init__(self, tensor_names, every_n_steps=100, first_n_steps=1):
+    def __init__(self, tensor_names, every_n_steps=1, first_n_steps=1, decay_rate=0.9):
         super(ProgressMonitor, self).__init__(every_n_steps, first_n_steps)
         if not isinstance(tensor_names, dict):
             tensor_names = {tensor_name: tensor_name for tensor_name in tensor_names}
         self._tensor_names = tensor_names
-        self._tensor_history = [np.zeros(every_n_steps) for tensor_name in tensor_names]
+        self._decay_rate = decay_rate
+        self._history = {tensor_name: 0.0 for tensor_name in tensor_names}
         self._last_step = 0
 
     def begin(self, max_steps=None):
@@ -31,11 +32,16 @@ class ProgressMonitor(tf.contrib.learn.monitors.EveryN):
 
     def every_n_step_end(self, step, outputs):
         super(ProgressMonitor, self).every_n_step_end(step, outputs)
+
         stats = []
-        for (tag, tensor_name), tensor_history in zip(self._tensor_names.iteritems(), self._tensor_history):
-            tensor_history[step%self._every_n_steps] = outputs[tensor_name]
-            tensor_mean = np.mean(tensor_history[:min(step, self._every_n_steps)])
-            stats.append("{}: {:.6f}".format(tag, tensor_mean))
+        for tag, name in self._tensor_names.iteritems():
+            if self._last_step > 0:
+                self._history[name] = outputs[name] * (1 - self._decay_rate) + \
+                    self._history[name] * self._decay_rate
+            else:
+                self._history[name] = outputs[name]
+            stats.append("{}: {:.6f}".format(tag, self._history[name]))
+
         self._progress_bar.set_description(", ".join(stats))
         self._progress_bar.update(step - self._last_step)
         self._last_step = step

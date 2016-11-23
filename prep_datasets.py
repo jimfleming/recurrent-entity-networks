@@ -51,9 +51,6 @@ def save_dataset(stories, sentence_max_length, story_max_length, query_max_lengt
     """
     writer = tf.python_io.TFRecordWriter(path)
     for story, query, answer in tqdm(stories):
-        story_length = len(story)
-        query_length = len(query)
-
         example = tf.train.SequenceExample()
         example.context.feature['answer'].int64_list.value.append(answer)
 
@@ -66,15 +63,14 @@ def save_dataset(stories, sentence_max_length, story_max_length, query_max_lengt
             for _ in range(sentence_max_length - len(sentence)):
                 story_list.feature.add().int64_list.value.append(0)
 
-        for token_id in query:
-            query_list.feature.add().int64_list.value.append(token_id)
-
-        # pre-wrap and pad sentences to consistent length, then flatten
-        for _ in range(story_max_length - story_length):
+        # pad sentences to consistent length
+        for _ in range(story_max_length - len(story)):
             for _ in range(sentence_max_length):
                 story_list.feature.add().int64_list.value.append(0)
 
-        for _ in range(query_max_length - query_length):
+        for token_id in query:
+            query_list.feature.add().int64_list.value.append(token_id)
+        for _ in range(query_max_length - len(query)):
             query_list.feature.add().int64_list.value.append(0)
 
         writer.write(example.SerializeToString())

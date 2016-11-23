@@ -21,10 +21,12 @@ def main(_):
     with tf.device('/cpu:0'):
         dataset_train = Dataset(
             filename='datasets/processed/qa1_single-supporting-fact_train.tfrecords',
+            metadata='datasets/processed/qa1_single-supporting-fact.json',
             batch_size=FLAGS.batch_size,
             shuffle=True)
         dataset_test = Dataset(
             filename='datasets/processed/qa1_single-supporting-fact_test.tfrecords',
+            metadata='datasets/processed/qa1_single-supporting-fact.json',
             batch_size=FLAGS.batch_size,
             shuffle=False)
 

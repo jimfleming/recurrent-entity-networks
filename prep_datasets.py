@@ -14,13 +14,18 @@ import tensorflow as tf
 
 from tqdm import tqdm
 
-SRC_DIR = 'datasets/'
-DEST_DIR = 'datasets/processed/'
+FLAGS = tf.app.flags.FLAGS
+
+tf.app.flags.DEFINE_string('source_dir', 'datasets/', 'Directory containing bAbI sources.')
+tf.app.flags.DEFINE_string('dest_dir', 'datasets/processed/', 'Where to write datasets.')
 
 SPLIT_RE = re.compile('(\W+)?')
 
 PAD_TOKEN = '_PAD'
 PAD_ID = 0
+
+def _int64_features(value):
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
 def tokenize(sentence):
     """
@@ -59,9 +64,6 @@ def parse_stories(lines, only_supporting=False):
             story.append(sentence)
     return stories
 
-def _int64_features(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
-
 def save_dataset(stories, path):
     """
     Save the stories into TFRecords.
@@ -71,7 +73,7 @@ def save_dataset(stories, path):
     slightly faster.
     """
     writer = tf.python_io.TFRecordWriter(path)
-    for story, query, answer in tqdm(stories):
+    for story, query, answer in stories:
         story_flat = [token_id for sentence in story for token_id in sentence]
 
         features = tf.train.Features(feature={
@@ -123,39 +125,39 @@ def pad_stories(stories, sentence_max_length, story_max_length, query_max_length
     return stories
 
 def main():
-    if not os.path.exists(DEST_DIR):
-        os.makedirs(DEST_DIR)
+    if not os.path.exists(FLAGS.dest_dir):
+        os.makedirs(FLAGS.dest_dir)
 
     filenames = [
         'qa1_single-supporting-fact',
-        # 'qa2_two-supporting-facts',
-        # 'qa3_three-supporting-facts',
-        # 'qa4_two-arg-relations',
-        # 'qa5_three-arg-relations',
-        # 'qa6_yes-no-questions',
-        # 'qa7_counting',
-        # 'qa8_lists-sets',
-        # 'qa9_simple-negation',
-        # 'qa10_indefinite-knowledge',
-        # 'qa11_basic-coreference',
-        # 'qa12_conjunction',
-        # 'qa13_compound-coreference',
-        # 'qa14_time-reasoning',
-        # 'qa15_basic-deduction',
-        # 'qa16_basic-induction',
-        # 'qa17_positional-reasoning',
-        # 'qa18_size-reasoning',
-        # 'qa19_path-finding',
-        # 'qa20_agents-motivations',
+        'qa2_two-supporting-facts',
+        'qa3_three-supporting-facts',
+        'qa4_two-arg-relations',
+        'qa5_three-arg-relations',
+        'qa6_yes-no-questions',
+        'qa7_counting',
+        'qa8_lists-sets',
+        'qa9_simple-negation',
+        'qa10_indefinite-knowledge',
+        'qa11_basic-coreference',
+        'qa12_conjunction',
+        'qa13_compound-coreference',
+        'qa14_time-reasoning',
+        'qa15_basic-deduction',
+        'qa16_basic-induction',
+        'qa17_positional-reasoning',
+        'qa18_size-reasoning',
+        'qa19_path-finding',
+        'qa20_agents-motivations',
     ]
 
-    tar = tarfile.open(os.path.join(SRC_DIR, 'babi_tasks_data_1_20_v1.2.tar.gz'))
-    for filename in filenames:
+    tar = tarfile.open(os.path.join(FLAGS.source_dir, 'babi_tasks_data_1_20_v1.2.tar.gz'))
+    for filename in tqdm(filenames):
         stories_path_train = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_train.txt')
         stories_path_test = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_test.txt')
 
-        dataset_path_train = os.path.join(DEST_DIR, filename + '_train.tfrecords')
-        dataset_path_test = os.path.join(DEST_DIR, filename + '_test.tfrecords')
+        dataset_path_train = os.path.join(FLAGS.dest_dir, filename + '_train.tfrecords')
+        dataset_path_test = os.path.join(FLAGS.dest_dir, filename + '_test.tfrecords')
 
         f_train = tar.extractfile(stories_path_train)
         f_test = tar.extractfile(stories_path_test)
@@ -164,9 +166,6 @@ def main():
         stories_test = parse_stories(f_test.readlines())
 
         token_to_id = get_tokenizer(stories_train + stories_test)
-
-        with open('tokens.json', 'w') as f:
-            json.dump(token_to_id, f)
 
         stories_token_train = tokenize_stories(stories_train, token_to_id)
         stories_token_test = tokenize_stories(stories_test, token_to_id)
@@ -177,11 +176,21 @@ def main():
         query_max_length = max([len(query) for _, query, _ in stories_token_all])
         vocab_size = len(token_to_id)
 
-        print('Dataset:', filename)
-        print('Max sentence length:', sentence_max_length)
-        print('Max story length:', story_max_length)
-        print('Max query length:', query_max_length)
-        print('Vocab size:', vocab_size)
+        metadata_path = os.path.join(FLAGS.dest_dir, filename + '.json')
+        with open(metadata_path, 'w') as f:
+            metadata = {
+                'name': filename,
+                'sentence_max_length': sentence_max_length,
+                'story_max_length': story_max_length,
+                'query_max_length': query_max_length,
+                'vocab_size': vocab_size,
+                'tokens': token_to_id,
+                'datasets': {
+                    'train': dataset_path_train,
+                    'test': dataset_path_test,
+                }
+            }
+            json.dump(metadata, f)
 
         stories_pad_train = pad_stories(stories_token_train, \
             sentence_max_length, story_max_length, query_max_length)

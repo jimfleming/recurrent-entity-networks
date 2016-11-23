@@ -1,7 +1,7 @@
 # Recurrent Entity Networks
 
-This repository contains a TensorFlow implementation of recurrent entity networks from [Tracking the World State with
-Recurrent Entity Networks](https://openreview.net/forum?id=rJTKKKqeg).
+This repository contains an independent TensorFlow implementation of recurrent entity networks from [Tracking the World State with
+Recurrent Entity Networks](https://openreview.net/forum?id=rJTKKKqeg). Thanks to Mikael Henaff for their help and answering questions about their paper over Thanksgiving break. :)
 
 ![Diagram of recurrent entity network](images/diagram.png)
 
@@ -13,4 +13,4 @@ Recurrent Entity Networks](https://openreview.net/forum?id=rJTKKKqeg).
 
 ## Dependencies
 
-- TensorFlow v0.11rc0
+- TensorFlow v0.11

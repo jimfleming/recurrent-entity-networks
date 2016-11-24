@@ -2,16 +2,17 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
+import os
 import json
 import tensorflow as tf
 
 class Dataset(object):
 
-    def __init__(self, dataset_dir, dataset_name):
-        self.dataset_dir = dataset_dir
+    def __init__(self, dataset_path):
+        self.dataset_path = dataset_path
+        self.dataset_dir = os.path.basename(dataset_path)
 
-        dataset_path = os.path.join(dataset_dir, dataset_name)
-        with open(dataset_path) as f:
+        with open(self.dataset_path) as f:
             metadata = json.load(f)
 
         self.max_sentence_length = metadata['max_sentence_length']

@@ -131,6 +131,9 @@ def pad_stories(stories, max_sentence_length, max_story_length, max_query_length
 
     return stories
 
+def truncate_stories(stories, max_length):
+    return [(story[-max_length:], query, answer) for story, query, answer in stories]
+
 def main():
     if not os.path.exists(FLAGS.dest_dir):
         os.makedirs(FLAGS.dest_dir)
@@ -175,11 +178,19 @@ def main():
             metadata_path = os.path.join(FLAGS.dest_dir, filename + '_1k.json')
             dataset_size = 1000
 
+        if filename == 'qa3_three-supporting-facts':
+            truncated_story_length = 130
+        else:
+            truncated_story_length = 70
+
         f_train = tar.extractfile(stories_path_train)
         f_test = tar.extractfile(stories_path_test)
 
         stories_train = parse_stories(f_train.readlines())
         stories_test = parse_stories(f_test.readlines())
+
+        stories_train = truncate_stories(stories_train, truncated_story_length)
+        stories_test = truncate_stories(stories_test, truncated_story_length)
 
         token_to_id = get_tokenizer(stories_train + stories_test)
 

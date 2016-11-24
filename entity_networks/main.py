@@ -15,12 +15,11 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('batch_size', 32, 'Batch size.')
 tf.app.flags.DEFINE_integer('num_epochs', 200, 'Number of training epochs.')
-tf.app.flags.DEFINE_string('model_dir', 'logs/{}'.format(int(time.time())), 'Log directory.')
-tf.app.flags.DEFINE_string('dataset_dir', 'datasets/processed/', 'Dataset directory.')
-tf.app.flags.DEFINE_string('dataset', 'qa1_single-supporting-fact_10k.json', 'Dataset directory.')
+tf.app.flags.DEFINE_string('logdir', 'logs/{}'.format(int(time.time())), 'Log directory.')
+tf.app.flags.DEFINE_string('dataset', 'datasets/processed/qa1_single-supporting-fact_10k.json', 'Dataset path.')
 
 def main(_):
-    dataset = Dataset(FLAGS.dataset_dir, FLAGS.dataset)
+    dataset = Dataset(FLAGS.dataset)
 
     train_input_fn = dataset.get_input_fn('train',
         batch_size=FLAGS.batch_size,
@@ -45,7 +44,7 @@ def main(_):
 
     estimator = tf.contrib.learn.Estimator(
         model_fn=model_fn,
-        model_dir=FLAGS.model_dir,
+        model_dir=FLAGS.logdir,
         params=params)
 
     experiment = tf.contrib.learn.Experiment(

@@ -52,7 +52,7 @@ def main(_):
 
     config = tf.contrib.learn.RunConfig(
         tf_random_seed=47,
-        save_summary_steps=3,
+        save_summary_steps=10,
         save_checkpoints_secs=120,
         keep_checkpoint_max=5,
         keep_checkpoint_every_n_hours=1,

@@ -10,7 +10,7 @@ Recurrent Entity Networks](https://openreview.net/forum?id=rJTKKKqeg). Thanks to
 1. Download the datasets by running [download_datasets.sh](download_datasets.sh) or from [The bAbI Project](https://research.facebook.com/research/babi/).
 2. Run [prep_datasets.py](prep_datasets.py) which will convert the datasets into [TFRecords](https://www.tensorflow.org/versions/r0.11/how_tos/reading_data/index.html#standard_tensorflow_format).
 3. Run `python -m entity_networks.main` to begin training on QA1.
-4. Run `./run_all` to train on all tasks.
+4. Run `./run_all.sh` to train on all tasks.
 
 ## Dependencies
 

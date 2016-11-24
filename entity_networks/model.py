@@ -33,8 +33,8 @@ def model_fn(features, labels, params, mode, scope=None):
         query_mask = get_sequence_mask(query)
 
         # Input Module
-        encoded_story = get_input_encoding(story_embedding * story_mask, 'StoryEncoding')
-        encoded_query = get_input_encoding(query_embedding * query_mask, 'QueryEncoding')
+        encoded_story = get_input_encoding(story_embedding * story_mask, initializer, 'StoryEncoding')
+        encoded_query = get_input_encoding(query_embedding * query_mask, initializer, 'QueryEncoding')
 
         # Memory Module
         cell = DynamicMemoryCell(num_blocks, embedding_size,
@@ -50,6 +50,7 @@ def model_fn(features, labels, params, mode, scope=None):
         output = get_output(last_state, encoded_query,
             num_blocks=num_blocks,
             vocab_size=vocab_size,
+            initializer=initializer,
             activation=activation)
         prediction = tf.argmax(output, 1)
 
@@ -57,24 +58,27 @@ def model_fn(features, labels, params, mode, scope=None):
         train_op = get_train_op(loss, params, mode)
         return prediction, loss, train_op
 
-def get_input_encoding(embedding, scope=None):
+def get_input_encoding(embedding, initializer=None, scope=None):
     """
     Implementation of the learned multiplicative mask from Section 2.1, Equation 1. This module is also described
     in [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852) as Position Encoding (PE). The mask allows
     the ordering of words in a sentence to affect the encoding.
     """
-    with tf.variable_scope(scope, 'Encoding'):
+    with tf.variable_scope(scope, 'Encoding', initializer=initializer):
         _, _, max_sentence_length, _ = embedding.get_shape().as_list()
         positional_mask = tf.get_variable('positional_mask', [max_sentence_length, 1])
         encoded_input = tf.reduce_sum(embedding * positional_mask, reduction_indices=[2])
         return encoded_input
 
-def get_output(last_state, encoded_query, num_blocks, vocab_size, activation=tf.nn.relu, scope=None):
+def get_output(last_state, encoded_query, num_blocks, vocab_size,
+    activation=tf.nn.relu,
+    initializer=None,
+    scope=None):
     """
     Implementation of Section 2.3, Equation 6. This module is also described in more detail here:
     [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852).
     """
-    with tf.variable_scope(scope, 'Output'):
+    with tf.variable_scope(scope, 'Output', initializer=initializer):
         last_state = tf.pack(tf.split(1, num_blocks, last_state), axis=1)
         _, _, embedding_size = last_state.get_shape().as_list()
 

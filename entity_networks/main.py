@@ -3,9 +3,16 @@ from __future__ import print_function
 from __future__ import division
 
 import time
+
 import random
+random.seed(67)
+
 import numpy as np
+np.random.seed(67)
+
 import tensorflow as tf
+tensorflow.set_random_seed(67)
+
 tf.logging.set_verbosity(tf.logging.INFO)
 
 from entity_networks.model import model_fn
@@ -15,7 +22,6 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('batch_size', 32, 'Batch size.')
 tf.app.flags.DEFINE_integer('num_epochs', 200, 'Number of training epochs.')
-tf.app.flags.DEFINE_string('logdir', 'logs/{}'.format(int(time.time())), 'Log directory.')
 tf.app.flags.DEFINE_string('dataset', 'datasets/processed/qa1_single-supporting-fact_10k.json', 'Dataset path.')
 
 def main(_):
@@ -42,9 +48,11 @@ def main(_):
 
     eval_metrics = {"accuracy": tf.contrib.metrics.streaming_accuracy}
 
+    dataset_name = os.path.splitext(os.path.basename(FLAGS.dataset))[0]
+    logdir = 'logs/{}/{}/'.format(dataset_name, timestamp)
     estimator = tf.contrib.learn.Estimator(
         model_fn=model_fn,
-        model_dir=FLAGS.logdir,
+        model_dir=logdir,
         params=params)
 
     experiment = tf.contrib.learn.Experiment(

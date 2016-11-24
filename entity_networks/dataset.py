@@ -9,10 +9,9 @@ import tensorflow as tf
 class Dataset(object):
 
     def __init__(self, dataset_path):
-        self.dataset_path = dataset_path
-        self.dataset_dir = os.path.basename(dataset_path)
+        self.dataset_dir = os.path.dirname(dataset_path)
 
-        with open(self.dataset_path) as f:
+        with open(dataset_path) as f:
             metadata = json.load(f)
 
         self.max_sentence_length = metadata['max_sentence_length']

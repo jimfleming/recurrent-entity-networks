@@ -12,9 +12,11 @@ class DatasetTest(tf.test.TestCase):
     def test_dataset(self):
         with self.test_session() as sess:
             dataset = Dataset(
-                filename='datasets/processed/qa1_single-supporting-fact_train.tfrecords',
+                path='datasets/processed/qa1_single-supporting-fact_10k.json',
+                name='train',
                 batch_size=1,
-                shuffle=False)
+                shuffle=False,
+                num_threads=1)
 
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess, coord, daemon=False)
@@ -28,9 +30,7 @@ class DatasetTest(tf.test.TestCase):
             coord.request_stop()
             coord.join(threads)
 
-            with open('tokens.json') as f:
-                token_to_id = json.load(f)
-                id_to_token = {id_: token for token, id_ in token_to_id.iteritems()}
+            id_to_token = {id_: token for token, id_ in dataset.tokens.iteritems()}
 
             story = story_batch[0]
             query = query_batch[0]

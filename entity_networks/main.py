@@ -46,14 +46,17 @@ def main(_):
         'clip_gradients': 40.0,
     }
 
-    eval_metrics = {"accuracy": tf.contrib.metrics.streaming_accuracy}
+    eval_metrics = {
+        "accuracy": tf.contrib.learn.metric_spec.MetricSpec(tf.contrib.metrics.streaming_accuracy)
+    }
 
     config = tf.contrib.learn.RunConfig(
-        tf_random_seed=67,
+        tf_random_seed=47,
         save_summary_steps=3,
         save_checkpoints_secs=120,
         keep_checkpoint_max=5,
-        keep_checkpoint_every_n_hours=1)
+        keep_checkpoint_every_n_hours=1,
+        log_device_placement=True)
 
     dataset_name = os.path.splitext(os.path.basename(FLAGS.dataset))[0]
     timestamp = int(time.time())

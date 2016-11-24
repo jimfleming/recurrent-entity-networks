@@ -19,6 +19,7 @@ class Dataset(object):
 
         self._dataset_size = metadata['dataset_size']
         self._vocab_size = metadata['vocab_size']
+        self._tokens = metadata['tokens']
 
         filename = metadata['datasets'][name]
         filename_queue = tf.train.string_input_producer([filename],
@@ -92,6 +93,10 @@ class Dataset(object):
     @property
     def size(self):
         return self._dataset_size
+
+    @property
+    def tokens(self):
+        return self._tokens
 
     @property
     def num_batches(self):

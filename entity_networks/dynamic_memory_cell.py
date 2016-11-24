@@ -31,10 +31,9 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
 
         g_j <- \sigma(s_t^T h_j + s_t^T w_j)
         """
-        with tf.variable_scope('Gate'):
-            a = tf.reduce_sum(inputs * state_j, reduction_indices=[1])
-            b = tf.reduce_sum(inputs * key_j, reduction_indices=[1])
-            return tf.sigmoid(a + b)
+        a = tf.reduce_sum(inputs * state_j, reduction_indices=[1])
+        b = tf.reduce_sum(inputs * key_j, reduction_indices=[1])
+        return tf.sigmoid(a + b)
 
     def get_candidate(self, state_j, key_j, inputs, U, V, W):
         """
@@ -43,11 +42,10 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
 
         h_j^~ <- \phi(U h_j + V w_j + W s_t)
         """
-        with tf.variable_scope('Gate'):
-            state_U = tf.matmul(state_j, U)
-            inputs_W = tf.matmul(inputs, W)
-            key_V = tf.matmul(tf.expand_dims(key_j, 0), V)
-            return self._activation(state_U + key_V + inputs_W)
+        state_U = tf.matmul(state_j, U)
+        inputs_W = tf.matmul(inputs, W)
+        key_V = tf.matmul(tf.expand_dims(key_j, 0), V)
+        return self._activation(state_U + key_V + inputs_W)
 
     def __call__(self, inputs, state, scope=None):
         with tf.variable_scope(scope or type(self).__name__, initializer=self._initializer):

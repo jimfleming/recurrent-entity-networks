@@ -8,36 +8,28 @@ import numpy as np
 import tensorflow as tf
 tf.logging.set_verbosity(tf.logging.INFO)
 
-from functools import partial
-
 from entity_networks.model import model_fn
 from entity_networks.dataset import Dataset
-from entity_networks.monitors import ProgressMonitor
 
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('batch_size', 32, 'Batch size.')
 tf.app.flags.DEFINE_integer('num_epochs', 200, 'Number of training epochs.')
 tf.app.flags.DEFINE_string('model_dir', 'logs/{}'.format(int(time.time())), 'Log directory.')
-tf.app.flags.DEFINE_string('dataset_path', 'datasets/processed/qa1_single-supporting-fact_10k.json', 'Dataset metadata path.')
+tf.app.flags.DEFINE_string('dataset_dir', 'datasets/processed/', 'Dataset directory.')
+tf.app.flags.DEFINE_string('dataset', 'qa1_single-supporting-fact_10k.json', 'Dataset directory.')
 
 def main(_):
-    def input_fn(is_training, num_epochs):
-        name = 'train' if is_training else 'test'
-        shuffle = True if is_training else False
-        dataset = Dataset(FLAGS.dataset_path, name,
-            batch_size=FLAGS.batch_size,
-            num_epochs=num_epochs,
-            shuffle=shuffle)
-        features = {
-            'story': dataset.story_batch,
-            'query': dataset.query_batch,
-        }
-        labels = dataset.answer_batch
-        return features, labels
+    dataset = Dataset(FLAGS.dataset_dir, FLAGS.dataset)
 
-    train_input_fn = partial(input_fn, is_training=True, num_epochs=None)
-    eval_input_fn = partial(input_fn, is_training=False, num_epochs=1)
+    train_input_fn = dataset.get_input_fn('train',
+        batch_size=FLAGS.batch_size,
+        num_epochs=FLAGS.num_epochs,
+        shuffle=True)
+    eval_input_fn = dataset.get_input_fn('test',
+        batch_size=FLAGS.batch_size,
+        num_epochs=1,
+        shuffle=False)
 
     params = {
         'embedding_size': 100,
@@ -63,7 +55,8 @@ def main(_):
         train_steps=None,
         eval_steps=None,
         eval_metrics=eval_metrics,
-        train_monitors=None)
+        train_monitors=None,
+        local_eval_frequency=1)
 
     experiment.train_and_evaluate()
 

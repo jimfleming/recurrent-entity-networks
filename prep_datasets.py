@@ -201,9 +201,9 @@ def main():
                 'max_query_length': max_query_length,
                 'vocab_size': vocab_size,
                 'tokens': token_to_id,
-                'datasets': { # TODO: Make these paths relative
-                    'train': dataset_path_train,
-                    'test': dataset_path_test,
+                'datasets': {
+                    'train': os.path.basename(dataset_path_train),
+                    'test': os.path.basename(dataset_path_test),
                 }
             }
             json.dump(metadata, f)

@@ -37,9 +37,9 @@ def main(_):
         shuffle=False)
 
     params = {
+        'vocab_size': dataset.vocab_size,
         'embedding_size': 100,
         'num_blocks': 20,
-        'vocab_size': 22,
         'learning_rate_init': 1e-2,
         'learning_rate_decay_steps': (10000 // FLAGS.batch_size) * 25,
         'learning_rate_decay_rate': 0.5,

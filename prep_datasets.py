@@ -178,6 +178,9 @@ def main():
             metadata_path = os.path.join(FLAGS.dest_dir, filename + '_1k.json')
             dataset_size = 1000
 
+        # From the entity networks paper:
+        # > Copying previous works (Sukhbaatar et al., 2015; Xiong et al., 2016), the capacity of the memory
+        # > was limited to the most recent 70 sentences, except for task 3 which was limited to 130 sentences.
         if filename == 'qa3_three-supporting-facts':
             truncated_story_length = 130
         else:

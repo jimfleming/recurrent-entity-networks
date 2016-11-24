@@ -32,7 +32,7 @@ def tokenize(sentence):
     """
     Tokenize a string by splitting on non-word characters and stripping whitespace.
     """
-    return [token.strip() for token in re.split(SPLIT_RE, sentence) if token.strip()]
+    return [token.strip().lower() for token in re.split(SPLIT_RE, sentence) if token.strip()]
 
 def parse_stories(lines, only_supporting=False):
     """

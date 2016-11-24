@@ -19,7 +19,7 @@ def model_fn(features, labels, params, mode, scope=None):
     story = features['story']
     query = features['query']
 
-    initializer = tf.random_normal_initializer(stddev=0.01) # We use 1e-2 rather than 1e-1 as in the paper to avoid NaN
+    initializer = tf.random_normal_initializer(stddev=0.1)
     activation = partial(prelu, initializer=tf.constant_initializer(1.0))
 
     with tf.variable_scope(scope, 'EntityNetwork', initializer=initializer):

@@ -8,7 +8,9 @@ import numpy as np
 import tensorflow as tf
 tf.logging.set_verbosity(tf.logging.INFO)
 
-from entity_networks.model import Model
+from functools import partial
+
+from entity_networks.model import model_fn
 from entity_networks.dataset import Dataset
 from entity_networks.monitors import ProgressMonitor
 
@@ -16,51 +18,54 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('batch_size', 32, 'Batch size.')
 tf.app.flags.DEFINE_integer('num_epochs', 200, 'Number of training epochs.')
-tf.app.flags.DEFINE_string('logdir', 'logs/{}'.format(int(time.time())), 'Log directory.')
+tf.app.flags.DEFINE_string('model_dir', 'logs/{}'.format(int(time.time())), 'Log directory.')
 tf.app.flags.DEFINE_string('dataset_path', 'datasets/processed/qa1_single-supporting-fact_10k.json', 'Dataset metadata path.')
 
 def main(_):
-    with tf.device('/cpu:0'):
-        dataset_train = Dataset(FLAGS.dataset_path, 'train',
+    def input_fn(is_training, num_epochs):
+        name = 'train' if is_training else 'test'
+        shuffle = True if is_training else False
+        dataset = Dataset(FLAGS.dataset_path, name,
             batch_size=FLAGS.batch_size,
-            shuffle=True)
-        dataset_test = Dataset(FLAGS.dataset_path, 'test',
-            batch_size=FLAGS.batch_size,
-            shuffle=False)
+            num_epochs=num_epochs,
+            shuffle=shuffle)
+        features = {
+            'story': dataset.story_batch,
+            'query': dataset.query_batch,
+        }
+        labels = dataset.answer_batch
+        return features, labels
 
-    with tf.variable_scope('Model'):
-        model_train = Model(dataset_train, is_training=True)
+    train_input_fn = partial(input_fn, is_training=True, num_epochs=None)
+    eval_input_fn = partial(input_fn, is_training=False, num_epochs=1)
 
-    # TODO: Replace with ValidationMonitor
-    with tf.variable_scope('Model', reuse=True):
-        model_test = Model(dataset_test, is_training=False)
+    params = {
+        'embedding_size': 100,
+        'num_blocks': 20,
+        'vocab_size': 22,
+        'learning_rate_init': 1e-2,
+        'learning_rate_decay_steps': (10000 // FLAGS.batch_size) * 25,
+        'learning_rate_decay_rate': 0.5,
+        'clip_gradients': 40.0,
+    }
 
-    print('Model has {} parameters'.format(model_train.num_parameters))
-    print('Dataset Story: {}, Sentence: {}, Query: {}'.format(dataset.max_story_length, dataset.max_sentence_length, dataset.max_query_length))
-    print('Saving logs to {}'.format(FLAGS.logdir))
+    eval_metrics = {"accuracy": tf.contrib.metrics.streaming_accuracy}
 
-    # Setup monitors for progress reporting
-    monitors = [
-        tf.contrib.learn.monitors.SummarySaver(
-            summary_op=tf.merge_all_summaries(),
-            save_steps=100,
-            output_dir=FLAGS.logdir),
-        ProgressMonitor(tensor_names={
-            'Loss (Train)': model_train.loss.name,
-            'Loss (Test)': model_test.loss.name,
-            'LR': model_train.learning_rate.name,
-        }, decay_rate=0.99),
-    ]
+    estimator = tf.contrib.learn.Estimator(
+        model_fn=model_fn,
+        model_dir=FLAGS.model_dir,
+        params=params)
 
-    # Begin main training loop
-    tf.contrib.learn.train(
-        graph=tf.get_default_graph(),
-        output_dir=FLAGS.logdir,
-        train_op=model_train.train_op,
-        loss_op=model_train.loss,
-        monitors=monitors,
-        log_every_steps=1,
-        max_steps=FLAGS.num_epochs*dataset_train.num_batches)
+    experiment = tf.contrib.learn.Experiment(
+        estimator,
+        train_input_fn,
+        eval_input_fn,
+        train_steps=None,
+        eval_steps=None,
+        eval_metrics=eval_metrics,
+        train_monitors=None)
+
+    experiment.train_and_evaluate()
 
 if __name__ == '__main__':
     tf.app.run()

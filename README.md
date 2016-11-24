@@ -29,9 +29,8 @@ Task | EntNet (paper) | EntNet (repo)
 18: size reasoning | 0.3 | ?
 19: path finding | 2.3 | ?
 20: agents motivation | 0 | ?
---- | --- | ---
-Failed Tasks: | 0 | ?
-Mean Error: | 0.5 | ?
+**Failed Tasks** | 0 | ?
+**Mean Error** | 0.5 | ?
 
 ## Setup
 

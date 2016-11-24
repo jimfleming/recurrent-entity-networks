@@ -19,7 +19,7 @@ def model_fn(features, labels, params, mode, scope=None):
     story = features['story']
     query = features['query']
 
-    initializer = tf.random_normal_initializer(stddev=0.1)
+    initializer = tf.random_normal_initializer(stddev=0.01) # We use 1e-2 rather than 1e-1 as in the paper to avoid NaN
     activation = partial(prelu, initializer=tf.constant_initializer(1.0))
 
     with tf.variable_scope(scope, 'EntityNetwork', initializer=initializer):
@@ -54,8 +54,14 @@ def model_fn(features, labels, params, mode, scope=None):
             activation=activation)
         prediction = tf.argmax(output, 1)
 
+        # Summaries
+        # tf.contrib.layers.summarize_activation(output)
+        # tf.contrib.layers.summarize_variables(name_filter='.*/alpha')
+
+        # Training
         loss = get_loss(output, labels)
         train_op = get_train_op(loss, params, mode)
+
         return prediction, loss, train_op
 
 def get_input_encoding(embedding, initializer=None, scope=None):
@@ -70,10 +76,7 @@ def get_input_encoding(embedding, initializer=None, scope=None):
         encoded_input = tf.reduce_sum(embedding * positional_mask, reduction_indices=[2])
         return encoded_input
 
-def get_output(last_state, encoded_query, num_blocks, vocab_size,
-    activation=tf.nn.relu,
-    initializer=None,
-    scope=None):
+def get_output(last_state, encoded_query, num_blocks, vocab_size, activation=tf.nn.relu, initializer=None, scope=None):
     """
     Implementation of Section 2.3, Equation 6. This module is also described in more detail here:
     [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852).

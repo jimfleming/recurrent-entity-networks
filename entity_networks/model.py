@@ -12,6 +12,7 @@ from entity_networks.dynamic_memory_cell import DynamicMemoryCell
 from entity_networks.model_utils import get_sequence_length, get_sequence_mask
 
 def model_fn(features, labels, params, mode, scope=None):
+    batch_size = params['batch_size']
     vocab_size = params['vocab_size']
     num_blocks = params['num_blocks']
     embedding_size = params['embedding_size']
@@ -43,8 +44,8 @@ def model_fn(features, labels, params, mode, scope=None):
 
         # Recurrence
         _, last_state = tf.nn.dynamic_rnn(cell, encoded_story,
-            sequence_length=get_sequence_length(encoded_story),
-            dtype=tf.float32)
+            initial_state=cell.zero_state(batch_size, tf.float32),
+            sequence_length=get_sequence_length(encoded_story))
 
         # Output Module
         output = get_output(last_state, encoded_query,

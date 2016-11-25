@@ -19,16 +19,16 @@ Task | EntNet (paper) | EntNet (repo)
 8: lists/sets | 0.5 | ?
 9: simple negation | 0.1 | ?
 10: indefinite knowledge | 0.6 | ?
-11: basic coreference | 0.3 | ?
-12: conjunction | 0 | ?
-13: compound coreference | 1.3 | ?
+11: basic coreference | 0.3 | 0
+12: conjunction | 0 | 0
+13: compound coreference | 1.3 | 0
 14: time reasoning | 0 | ?
 15: basic deduction | 0 | ?
 16: basic induction | 0.2 | ?
-17: positional reasoning | 0.5 | ?
+17: positional reasoning | 0.5 | 1.7
 18: size reasoning | 0.3 | ?
 19: path finding | 2.3 | ?
-20: agents motivation | 0 | ?
+20: agents motivation | 0 | 0.2
 **Failed Tasks** | 0 | ?
 **Mean Error** | 0.5 | ?
 

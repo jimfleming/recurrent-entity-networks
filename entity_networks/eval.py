@@ -6,11 +6,7 @@ import os
 import time
 
 import random
-random.seed(67)
-
 import numpy as np
-np.random.seed(67)
-
 import tensorflow as tf
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -21,6 +17,8 @@ from entity_networks.dataset import Dataset
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('batch_size', 32, 'Batch size.')
+tf.app.flags.DEFINE_integer('embedding_size', 100, 'Embedding size.')
+tf.app.flags.DEFINE_integer('num_blocks', 20, 'Number of memory blocks.')
 tf.app.flags.DEFINE_string('model_dir', 'logs/', 'Output directory.')
 tf.app.flags.DEFINE_string('dataset', 'datasets/processed/qa1_single-supporting-fact_10k.json', 'Dataset path.')
 
@@ -34,12 +32,11 @@ def main(_):
 
     params = {
         'vocab_size': dataset.vocab_size,
-        'embedding_size': 100,
-        'num_blocks': 20,
+        'embedding_size': FLAGS.embedding_size,
+        'num_blocks': FLAGS.num_blocks,
     }
 
     config = tf.contrib.learn.RunConfig(
-        tf_random_seed=47,
         save_summary_steps=120,
         save_checkpoints_secs=600,
         keep_checkpoint_max=5,

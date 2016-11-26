@@ -21,4 +21,5 @@ def get_sequence_mask(sequence, scope=None):
     with tf.variable_scope(scope, 'SequenceMask'):
         sequence = tf.reduce_sum(sequence, reduction_indices=[-1], keep_dims=True)
         mask = tf.to_float(tf.greater(sequence, 0))
-        return tf.expand_dims(mask, -1)
+        mask = tf.expand_dims(mask, -1)
+        return mask

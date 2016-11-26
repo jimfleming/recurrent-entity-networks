@@ -132,7 +132,11 @@ def pad_stories(stories, max_sentence_length, max_story_length, max_query_length
     return stories
 
 def truncate_stories(stories, max_length):
-    return [(story[-max_length:], query, answer) for story, query, answer in stories]
+    stories_truncated = []
+    for story, query, answer in stories:
+        story_truncated = story[-max_length:]
+        stories_truncated.append((story_truncated, query, answer))
+    return stories_truncated
 
 def main():
     if not os.path.exists(FLAGS.dest_dir):

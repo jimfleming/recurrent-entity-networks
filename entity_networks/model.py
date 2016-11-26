@@ -42,8 +42,9 @@ def model_fn(features, labels, params, mode, scope=None):
             activation=activation)
 
         # Recurrence
+        sequence_length = get_sequence_length(encoded_story)
         _, last_state = tf.nn.dynamic_rnn(cell, encoded_story,
-            sequence_length=get_sequence_length(encoded_story),
+            sequence_length=sequence_length,
             dtype=tf.float32)
 
         # Output Module

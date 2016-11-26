@@ -37,5 +37,9 @@ class Dataset(object):
                 randomize_input=shuffle,
                 num_epochs=num_epochs)
 
-            return {'story': features['story'], 'query': features['query']}, features['answer']
+            story = features['story']
+            query = features['query']
+            answer = features['answer']
+
+            return {'story': story, 'query': query}, answer
         return input_fn

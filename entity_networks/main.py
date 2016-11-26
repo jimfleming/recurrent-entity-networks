@@ -42,7 +42,6 @@ def main(_):
         shuffle=False)
 
     params = {
-        'batch_size': FLAGS.batch_size,
         'vocab_size': dataset.vocab_size,
         'embedding_size': FLAGS.embedding_size,
         'num_blocks': FLAGS.num_blocks,

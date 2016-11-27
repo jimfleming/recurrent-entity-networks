@@ -50,7 +50,7 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
     def __call__(self, inputs, state, scope=None):
         with tf.variable_scope(scope or type(self).__name__, initializer=self._initializer):
             # Split the hidden state into blocks (each U, V, W are shared across blocks).
-            state = tf.split(1, self._num_blocks, state) # TODO: split+concat is relatively expensive
+            state = tf.split(1, self._num_blocks, state)
 
             U = tf.get_variable('U', [self._num_units_per_block, self._num_units_per_block])
             V = tf.get_variable('V', [self._num_units_per_block, self._num_units_per_block])

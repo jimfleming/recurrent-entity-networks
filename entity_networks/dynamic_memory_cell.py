@@ -25,9 +25,9 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
     def output_size(self):
         return self._num_blocks * self._num_units_per_block
 
-    def get_gate(self, inputs, state_j, key_j):
+    def get_gate(self, state_j, key_j, inputs):
         """
-        Implements the gate (a scalar for each block). Equation 2:
+        Implements the gate (scalar for each block). Equation 2:
 
         g_j <- \sigma(s_t^T h_j + s_t^T w_j)
         """
@@ -42,9 +42,9 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
 
         h_j^~ <- \phi(U h_j + V w_j + W s_t)
         """
+        key_V = tf.matmul(tf.expand_dims(key_j, 0), V)
         state_U = tf.matmul(state_j, U)
         inputs_W = tf.matmul(inputs, W)
-        key_V = tf.matmul(tf.expand_dims(key_j, 0), V)
         return self._activation(state_U + key_V + inputs_W)
 
     def __call__(self, inputs, state, scope=None):
@@ -59,7 +59,7 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
             next_states = []
             for j, state_j in enumerate(state): # Hidden State (j)
                 key_j = tf.get_variable('key_{}'.format(j), [self._num_units_per_block])
-                gate_j = self.get_gate(inputs, state_j, key_j)
+                gate_j = self.get_gate(state_j, key_j, inputs)
                 candidate_j = self.get_candidate(state_j, key_j, inputs, U, V, W)
 
                 # Equation 4: h_j <- h_j + g_j * h_j^~

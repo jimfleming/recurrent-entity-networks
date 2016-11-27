@@ -12,5 +12,5 @@ def prelu(features, initializer=None, scope=None):
         alpha = tf.get_variable('alpha',
             shape=features.get_shape().as_list()[1:])
         pos = tf.nn.relu(features)
-        neg = alpha * (features - tf.abs(features)) * 0.5
+        neg = tf.clip_by_value(alpha, 0, 1) * (features - tf.abs(features)) * 0.5 # TODO: Clipping may not be necessary
         return pos + neg

@@ -9,36 +9,39 @@ from functools import partial
 
 from entity_networks.activations import prelu
 from entity_networks.dynamic_memory_cell import DynamicMemoryCell
-from entity_networks.model_utils import get_sequence_length, get_sequence_mask
+from entity_networks.model_utils import get_sequence_length
 
 def model_fn(features, labels, params, mode, scope=None):
-    vocab_size = params['vocab_size']
-    num_blocks = params['num_blocks']
     embedding_size = params['embedding_size']
+    num_blocks = params['num_blocks']
+    vocab_size = params['vocab_size']
 
     story = features['story']
     query = features['query']
 
-    initializer = tf.random_normal_initializer(stddev=0.1)
-    activation = partial(prelu, initializer=tf.constant_initializer(1.0))
+    normal_initializer = tf.random_normal_initializer(stddev=0.1)
+    ones_initializer = tf.constant_initializer(1.0)
 
-    with tf.variable_scope(scope, 'EntityNetwork', initializer=initializer):
+    activation = partial(prelu, initializer=ones_initializer)
+
+    with tf.variable_scope(scope, 'EntityNetwork', initializer=normal_initializer):
+        # Embeddings
         embedding_params = tf.get_variable('embedding_params', [vocab_size, embedding_size])
+        embedding_mask = tf.concat(0, [ # force pad embedding to zero
+            tf.zeros([1, 1]),
+            tf.ones([vocab_size - 1, 1])
+        ])
 
-        story_embedding = tf.nn.embedding_lookup(embedding_params, story)
-        query_embedding = tf.nn.embedding_lookup(embedding_params, query)
-
-        # Mask embeddings
-        story_mask = get_sequence_mask(story)
-        query_mask = get_sequence_mask(query)
+        story_embedding = tf.nn.embedding_lookup(embedding_params * embedding_mask, story)
+        query_embedding = tf.nn.embedding_lookup(embedding_params * embedding_mask, query)
 
         # Input Module
-        encoded_story = get_input_encoding(story_embedding * story_mask, initializer, 'StoryEncoding')
-        encoded_query = get_input_encoding(query_embedding * query_mask, initializer, 'QueryEncoding')
+        encoded_story = get_input_encoding(story_embedding, ones_initializer, 'StoryEncoding')
+        encoded_query = get_input_encoding(query_embedding, ones_initializer, 'QueryEncoding')
 
         # Memory Module
         cell = DynamicMemoryCell(num_blocks, embedding_size,
-            initializer=initializer,
+            initializer=normal_initializer,
             activation=activation)
 
         # Recurrence
@@ -51,13 +54,17 @@ def model_fn(features, labels, params, mode, scope=None):
         output = get_output(last_state, encoded_query,
             num_blocks=num_blocks,
             vocab_size=vocab_size,
-            initializer=initializer,
+            initializer=normal_initializer,
             activation=activation)
         prediction = tf.argmax(output, 1)
 
         # Summaries
-        # tf.contrib.layers.summarize_activation(output)
-        # tf.contrib.layers.summarize_variables(name_filter='.*/alpha')
+        tf.contrib.layers.summarize_activation(output)
+        tf.contrib.layers.summarize_variables(name_filter='.*/alpha')
+        tf.contrib.layers.summarize_tensor(output, 'output')
+        tf.contrib.layers.summarize_tensor(last_state, 'last_state')
+        tf.contrib.layers.summarize_tensor(encoded_story, 'encoded_story')
+        tf.contrib.layers.summarize_tensor(encoded_query, 'encoded_query')
 
         # Training
         loss = get_loss(output, labels)
@@ -77,7 +84,10 @@ def get_input_encoding(embedding, initializer=None, scope=None):
         encoded_input = tf.reduce_sum(embedding * positional_mask, reduction_indices=[2])
         return encoded_input
 
-def get_output(last_state, encoded_query, num_blocks, vocab_size, activation=tf.nn.relu, initializer=None, scope=None):
+def get_output(last_state, encoded_query, num_blocks, vocab_size,
+        activation=tf.nn.relu,
+        initializer=None,
+        scope=None):
     """
     Implementation of Section 2.3, Equation 6. This module is also described in more detail here:
     [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852).
@@ -88,7 +98,10 @@ def get_output(last_state, encoded_query, num_blocks, vocab_size, activation=tf.
 
         # Use the encoded_query to attend over memories (hidden states of dynamic last_state cell blocks)
         attention = tf.reduce_sum(last_state * encoded_query, reduction_indices=[2])
-        attention = tf.nn.softmax(attention)
+
+        # Subtract max for numerical stability (softmax is shift invariant)
+        attention_max = tf.reduce_max(attention, reduction_indices=[-1], keep_dims=True)
+        attention = tf.nn.softmax(attention - attention_max)
         attention = tf.expand_dims(attention, 2)
 
         # Weight memories by attention vectors
@@ -124,6 +137,7 @@ def get_train_op(loss, params, mode):
         decay_rate=learning_rate_decay_rate,
         global_step=global_step,
         staircase=True)
+
     tf.contrib.layers.summarize_tensor(learning_rate, tag='learning_rate')
 
     train_op = tf.contrib.layers.optimize_loss(loss,

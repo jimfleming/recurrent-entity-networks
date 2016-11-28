@@ -36,9 +36,10 @@ def model_fn(features, labels, params, mode, scope=None):
         embedding_mask = tf.constant([0 if i == 0 else 1 for i in range(vocab_size)],
             dtype=tf.float32,
             shape=[vocab_size, 1])
+        embedding_params_masked = embedding_params * embedding_mask
 
-        story_embedding = tf.nn.embedding_lookup(embedding_params * embedding_mask, story)
-        query_embedding = tf.nn.embedding_lookup(embedding_params * embedding_mask, query)
+        story_embedding = tf.nn.embedding_lookup(embedding_params_masked, story)
+        query_embedding = tf.nn.embedding_lookup(embedding_params_masked, query)
 
         # Input Module
         encoded_story = get_input_encoding(story_embedding, ones_initializer, 'StoryEncoding')

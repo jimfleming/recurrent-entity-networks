@@ -1,6 +1,6 @@
 #!/bin/bash
 
-seeds=(7,13,17,23,27,31,37,43,47,53)
+seeds=(7 14 21 28 35 42 49 56 63 70)
 
 for seed in ${seeds[@]}; do
   echo "Running $1 with seed: $seed..."

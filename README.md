@@ -14,11 +14,11 @@ Task | EntNet (paper) | EntNet (repo)
 3: 3 supporting facts | 4.1 | ?
 4: 2 argument relations | 0 | 0
 5: 3 argument relations | 0.3 | ?
-6: yes/no questions | 0.2 | ?
+6: yes/no questions | 0.2 | 0.1
 7: counting | 0 | ?
 8: lists/sets | 0.5 | ?
-9: simple negation | 0.1 | 0.007
-10: indefinite knowledge | 0.6 | ?
+9: simple negation | 0.1 | 0.7
+10: indefinite knowledge | 0.6 | 0.1
 11: basic coreference | 0.3 | 0
 12: conjunction | 0 | 0
 13: compound coreference | 1.3 | 0

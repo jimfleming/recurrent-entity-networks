@@ -13,13 +13,3 @@ def get_sequence_length(sequence, scope=None):
         used = tf.sign(tf.reduce_max(tf.abs(sequence), reduction_indices=[-1]))
         length = tf.cast(tf.reduce_sum(used, reduction_indices=[-1]), tf.int32)
         return length
-
-def get_sequence_mask(sequence, scope=None):
-    """
-    This is a hacky way of masking the padded sentence embeddings.
-    """
-    with tf.variable_scope(scope, 'SequenceMask'):
-        sequence = tf.reduce_sum(sequence, reduction_indices=[-1], keep_dims=True)
-        mask = tf.to_float(tf.greater(sequence, 0))
-        mask = tf.expand_dims(mask, -1)
-        return mask

@@ -7,6 +7,8 @@ Recurrent Entity Networks](https://openreview.net/forum?id=rJTKKKqeg). This pape
 
 ## Results
 
+Percent error for each task, comparing those in the paper to the implementation contained in this repository.
+
 Task | EntNet (paper) | EntNet (repo)
 --- | --- | ---
 1: 1 supporting fact | 0 | 0
@@ -26,7 +28,7 @@ Task | EntNet (paper) | EntNet (repo)
 15: basic deduction | 0 | 0
 16: basic induction | 0.2 | ?
 17: positional reasoning | 0.5 | 1.7
-18: size reasoning | 0.3 | ?
+18: size reasoning | 0.3 | 1.5
 19: path finding | 2.3 | ?
 20: agents motivation | 0 | 0.2
 **Failed Tasks** | 0 | ?

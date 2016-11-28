@@ -34,6 +34,7 @@ def main(_):
         'vocab_size': dataset.vocab_size,
         'embedding_size': FLAGS.embedding_size,
         'num_blocks': FLAGS.num_blocks,
+        'debug': False,
     }
 
     config = tf.contrib.learn.RunConfig(

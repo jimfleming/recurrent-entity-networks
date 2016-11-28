@@ -50,6 +50,7 @@ def main(_):
         'learning_rate_decay_steps': (10000 // FLAGS.batch_size) * 25,
         'learning_rate_decay_rate': 0.5,
         'clip_gradients': FLAGS.clip_gradients,
+        'debug': FLAGS.debug,
     }
 
     eval_metrics = {

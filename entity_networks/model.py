@@ -149,25 +149,12 @@ def get_train_op(loss, params, mode):
         global_step=global_step,
         staircase=True)
 
-    # TODO:
-    # train_op = tf.contrib.layers.optimize_loss(loss,
-    #     global_step=global_step,
-    #     learning_rate=learning_rate,
-    #     optimizer='Adam',
-    #     clip_gradients=clip_gradients)
-
     tf.contrib.layers.summarize_tensor(learning_rate, tag='learning_rate')
-    tf.contrib.layers.summarize_tensor(loss, tag='loss')
 
-    optimizer = tf.train.AdamOptimizer(learning_rate)
-    grads_and_vars = optimizer.compute_gradients(loss)
+    train_op = tf.contrib.layers.optimize_loss(loss,
+        global_step=global_step,
+        learning_rate=learning_rate,
+        optimizer='Adam',
+        clip_gradients=clip_gradients)
 
-    grads, tvars = zip(*grads_and_vars)
-    grads_clipped, global_norm = tf.clip_by_global_norm(grads, clip_gradients)
-
-    # tf.contrib.layers.summarize_tensors(grads_clipped)
-    # tf.contrib.layers.summarize_tensor(global_norm, 'global_norm')
-
-    train_op = optimizer.apply_gradients(zip(grads_clipped, tvars),
-        global_step=global_step)
     return train_op

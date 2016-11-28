@@ -11,9 +11,10 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
     The cell's hidden state is divided into blocks and each block's weights are tied.
     """
 
-    def __init__(self, num_blocks, num_units_per_block, initializer=None, activation=tf.nn.relu):
+    def __init__(self, num_blocks, num_units_per_block, keys, initializer=None, activation=tf.nn.relu):
         self._num_blocks = num_blocks # M
         self._num_units_per_block = num_units_per_block # d
+        self._keys = keys
         self._activation = activation # \phi
         self._initializer = initializer
 
@@ -25,6 +26,14 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
     def output_size(self):
         return self._num_blocks * self._num_units_per_block
 
+    def zero_state(self, batch_size, dtype):
+        """
+        We initialize the memory to the key values.
+        """
+        zero_state = tf.concat(1, [tf.expand_dims(key, 0) for key in self._keys])
+        zero_state_batch = tf.tile(zero_state, tf.pack([batch_size, 1]))
+        return zero_state_batch
+
     def get_gate(self, state_j, key_j, inputs):
         """
         Implements the gate (scalar for each block). Equation 2:
@@ -32,7 +41,7 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
         g_j <- \sigma(s_t^T h_j + s_t^T w_j)
         """
         a = tf.reduce_sum(inputs * state_j, reduction_indices=[1])
-        b = tf.reduce_sum(inputs * key_j, reduction_indices=[1])
+        b = tf.reduce_sum(inputs * tf.expand_dims(key_j, 0), reduction_indices=[1])
         return tf.sigmoid(a + b)
 
     def get_candidate(self, state_j, key_j, inputs, U, V, W):
@@ -58,7 +67,7 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
 
             next_states = []
             for j, state_j in enumerate(state): # Hidden State (j)
-                key_j = tf.get_variable('key_{}'.format(j), [self._num_units_per_block])
+                key_j = self._keys[j]
                 gate_j = self.get_gate(state_j, key_j, inputs)
                 candidate_j = self.get_candidate(state_j, key_j, inputs, U, V, W)
 
@@ -67,8 +76,8 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
                 state_j_next = state_j + tf.expand_dims(gate_j, -1) * candidate_j
 
                 # Equation 5: h_j <- h_j / \norm{h_j}
-                # Forgot previous memories by normalization.
-                state_j_next = tf.nn.l2_normalize(state_j_next, -1)
+                # Forget previous memories by normalization.
+                state_j_next = tf.nn.l2_normalize(state_j_next, -1, epsilon=1e-7) # TODO: Is epsilon necessary?
 
                 next_states.append(state_j_next)
             state_next = tf.concat(1, next_states)

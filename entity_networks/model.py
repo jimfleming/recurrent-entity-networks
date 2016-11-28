@@ -15,22 +15,27 @@ def model_fn(features, labels, params, mode, scope=None):
     embedding_size = params['embedding_size']
     num_blocks = params['num_blocks']
     vocab_size = params['vocab_size']
+    debug = params['debug']
 
     story = features['story']
     query = features['query']
 
+    batch_size = tf.shape(story)[0]
+
     normal_initializer = tf.random_normal_initializer(stddev=0.1)
     ones_initializer = tf.constant_initializer(1.0)
 
+    # PReLU activations have their alpha parameters initialized to 1
+    # so they may be identity before training.
     activation = partial(prelu, initializer=ones_initializer)
 
     with tf.variable_scope(scope, 'EntityNetwork', initializer=normal_initializer):
         # Embeddings
+        # The embedding mask forces the special "pad" embedding to zeros.
         embedding_params = tf.get_variable('embedding_params', [vocab_size, embedding_size])
-        embedding_mask = tf.concat(0, [ # force pad embedding to zero
-            tf.zeros([1, 1]),
-            tf.ones([vocab_size - 1, 1])
-        ])
+        embedding_mask = tf.constant([0 if i == 0 else 1 for i in range(vocab_size)],
+            dtype=tf.float32,
+            shape=[vocab_size, 1])
 
         story_embedding = tf.nn.embedding_lookup(embedding_params * embedding_mask, story)
         query_embedding = tf.nn.embedding_lookup(embedding_params * embedding_mask, query)
@@ -40,15 +45,19 @@ def model_fn(features, labels, params, mode, scope=None):
         encoded_query = get_input_encoding(query_embedding, ones_initializer, 'QueryEncoding')
 
         # Memory Module
-        cell = DynamicMemoryCell(num_blocks, embedding_size,
+        # We define the keys outside of the cell so they may be used for state initialization.
+        keys = [tf.get_variable('key_{}'.format(j), [embedding_size]) for j in range(num_blocks)]
+
+        cell = DynamicMemoryCell(num_blocks, embedding_size, keys,
             initializer=normal_initializer,
             activation=activation)
 
         # Recurrence
+        initial_state = cell.zero_state(batch_size, tf.float32)
         sequence_length = get_sequence_length(encoded_story)
         _, last_state = tf.nn.dynamic_rnn(cell, encoded_story,
             sequence_length=sequence_length,
-            dtype=tf.float32)
+            initial_state=initial_state)
 
         # Output Module
         output = get_output(last_state, encoded_query,
@@ -58,17 +67,19 @@ def model_fn(features, labels, params, mode, scope=None):
             activation=activation)
         prediction = tf.argmax(output, 1)
 
-        # Summaries
-        tf.contrib.layers.summarize_activation(output)
-        tf.contrib.layers.summarize_variables(name_filter='.*/alpha')
-        tf.contrib.layers.summarize_tensor(output, 'output')
-        tf.contrib.layers.summarize_tensor(last_state, 'last_state')
-        tf.contrib.layers.summarize_tensor(encoded_story, 'encoded_story')
-        tf.contrib.layers.summarize_tensor(encoded_query, 'encoded_query')
-
         # Training
-        loss = get_loss(output, labels)
+        loss = get_loss(output, labels, mode)
         train_op = get_train_op(loss, params, mode)
+
+        if debug:
+            tf.contrib.layers.summarize_tensor(sequence_length, 'sequence_length')
+            tf.contrib.layers.summarize_tensor(encoded_story, 'encoded_story')
+            tf.contrib.layers.summarize_tensor(encoded_query, 'encoded_query')
+            tf.contrib.layers.summarize_tensor(last_state, 'last_state')
+            tf.contrib.layers.summarize_tensor(output, 'output')
+            tf.contrib.layers.summarize_variables()
+
+            tf.add_check_numerics_ops()
 
         return prediction, loss, train_op
 
@@ -115,8 +126,8 @@ def get_output(last_state, encoded_query, num_blocks, vocab_size,
         y = tf.matmul(activation(q + tf.matmul(u, H)), R)
         return y
 
-def get_loss(output, labels):
-    if labels is None:
+def get_loss(output, labels, mode):
+    if mode == tf.contrib.learn.ModeKeys.INFER:
         return None
     return tf.contrib.losses.sparse_softmax_cross_entropy(output, labels)
 
@@ -138,11 +149,25 @@ def get_train_op(loss, params, mode):
         global_step=global_step,
         staircase=True)
 
-    tf.contrib.layers.summarize_tensor(learning_rate, tag='learning_rate')
+    # TODO:
+    # train_op = tf.contrib.layers.optimize_loss(loss,
+    #     global_step=global_step,
+    #     learning_rate=learning_rate,
+    #     optimizer='Adam',
+    #     clip_gradients=clip_gradients)
 
-    train_op = tf.contrib.layers.optimize_loss(loss,
-        global_step=global_step,
-        learning_rate=learning_rate,
-        optimizer='Adam',
-        clip_gradients=clip_gradients)
+    tf.contrib.layers.summarize_tensor(learning_rate, tag='learning_rate')
+    tf.contrib.layers.summarize_tensor(loss, tag='loss')
+
+    optimizer = tf.train.AdamOptimizer(learning_rate)
+    grads_and_vars = optimizer.compute_gradients(loss)
+
+    grads, tvars = zip(*grads_and_vars)
+    grads_clipped, global_norm = tf.clip_by_global_norm(grads, clip_gradients)
+
+    # tf.contrib.layers.summarize_tensors(grads_clipped)
+    # tf.contrib.layers.summarize_tensor(global_norm, 'global_norm')
+
+    train_op = optimizer.apply_gradients(zip(grads_clipped, tvars),
+        global_step=global_step)
     return train_op

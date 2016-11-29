@@ -23,10 +23,9 @@ tf.app.flags.DEFINE_string('model_dir', 'logs/', 'Output directory.')
 tf.app.flags.DEFINE_string('dataset', 'datasets/processed/qa1_single-supporting-fact_10k.json', 'Dataset path.')
 
 def main(_):
-    dataset = Dataset(FLAGS.dataset)
+    dataset = Dataset(FLAGS.dataset, FLAGS.batch_size)
 
     input_fn = dataset.get_input_fn('test',
-        batch_size=FLAGS.batch_size,
         num_epochs=1,
         shuffle=False)
 

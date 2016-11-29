@@ -61,9 +61,12 @@ class DynamicMemoryCell(tf.nn.rnn_cell.RNNCell):
             # Split the hidden state into blocks (each U, V, W are shared across blocks).
             state = tf.split(1, self._num_blocks, state)
 
+            # TODO: ortho init?
             U = tf.get_variable('U', [self._num_units_per_block, self._num_units_per_block])
             V = tf.get_variable('V', [self._num_units_per_block, self._num_units_per_block])
             W = tf.get_variable('W', [self._num_units_per_block, self._num_units_per_block])
+
+            # TODO: layer norm?
 
             next_states = []
             for j, state_j in enumerate(state): # Hidden State (j)

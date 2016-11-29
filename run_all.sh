@@ -16,12 +16,12 @@ filenames=(
   # "$base_path/qa11_basic-coreference_10k.json"
   # "$base_path/qa12_conjunction_10k.json"
   # "$base_path/qa13_compound-coreference_10k.json"
-  # "$base_path/qa14_time-reasoning_10k.json"
+  "$base_path/qa14_time-reasoning_10k.json"
   # "$base_path/qa15_basic-deduction_10k.json"
-  # "$base_path/qa16_basic-induction_10k.json"
+  "$base_path/qa16_basic-induction_10k.json"
   # "$base_path/qa17_positional-reasoning_10k.json"
-  "$base_path/qa18_size-reasoning_10k.json"
-  "$base_path/qa19_path-finding_10k.json"
+  # "$base_path/qa18_size-reasoning_10k.json"
+  # FAIL: "$base_path/qa19_path-finding_10k.json"
   # "$base_path/qa20_agents-motivations_10k.json"
 )
 

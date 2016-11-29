@@ -8,8 +8,10 @@ import tensorflow as tf
 
 class Dataset(object):
 
-    def __init__(self, dataset_path):
+    def __init__(self, dataset_path, batch_size):
         self.dataset_dir = os.path.dirname(dataset_path)
+        self.batch_size = batch_size
+        self.examples_per_epoch = 10000
 
         with open(dataset_path) as f:
             metadata = json.load(f)
@@ -22,7 +24,11 @@ class Dataset(object):
         self.tokens = metadata['tokens']
         self.datasets = metadata['datasets']
 
-    def get_input_fn(self, name, batch_size, num_epochs, shuffle):
+    @property
+    def steps_per_epoch(self):
+        return self.batch_size * self.examples_per_epoch
+
+    def get_input_fn(self, name, num_epochs, shuffle):
         def input_fn():
             features = {
                 "story": tf.FixedLenFeature([self.max_story_length, self.max_sentence_length], dtype=tf.int64),
@@ -33,7 +39,7 @@ class Dataset(object):
             dataset_path = os.path.join(self.dataset_dir, self.datasets[name])
             features = tf.contrib.learn.read_batch_record_features(dataset_path,
                 features=features,
-                batch_size=batch_size,
+                batch_size=self.batch_size,
                 randomize_input=shuffle,
                 num_epochs=num_epochs)
 

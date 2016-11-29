@@ -21,6 +21,7 @@ tf.app.flags.DEFINE_integer('embedding_size', 100, 'Embedding size.')
 tf.app.flags.DEFINE_integer('num_blocks', 20, 'Number of memory blocks.')
 tf.app.flags.DEFINE_integer('num_epochs', 200, 'Number of training epochs.')
 tf.app.flags.DEFINE_integer('seed', 67, 'Random seed.')
+tf.app.flags.DEFINE_integer('early_stopping_rounds', 10, 'Number of epochs before early stopping.')
 tf.app.flags.DEFINE_float('learning_rate', 1e-2, 'Base learning rate.')
 tf.app.flags.DEFINE_float('clip_gradients', 40.0, 'Clip the global norm of the gradients to this value.')
 tf.app.flags.DEFINE_string('model_dir', 'logs/', 'Model directory.')
@@ -31,14 +32,12 @@ def main(_):
     random.seed(FLAGS.seed)
     np.random.seed(FLAGS.seed)
 
-    dataset = Dataset(FLAGS.dataset)
+    dataset = Dataset(FLAGS.dataset, FLAGS.batch_size)
 
     train_input_fn = dataset.get_input_fn('train',
-        batch_size=FLAGS.batch_size,
         num_epochs=FLAGS.num_epochs,
         shuffle=True)
     eval_input_fn = dataset.get_input_fn('test',
-        batch_size=FLAGS.batch_size,
         num_epochs=1,
         shuffle=False)
 
@@ -47,11 +46,21 @@ def main(_):
         'embedding_size': FLAGS.embedding_size,
         'num_blocks': FLAGS.num_blocks,
         'learning_rate_init': FLAGS.learning_rate,
-        'learning_rate_decay_steps': (10000 // FLAGS.batch_size) * 25,
+        'learning_rate_decay_steps': dataset.steps_per_epoch * 25,
         'learning_rate_decay_rate': 0.5,
         'clip_gradients': FLAGS.clip_gradients,
         'debug': FLAGS.debug,
     }
+
+    train_monitors = [
+        # Run a validation pass every epoch
+        tf.contrib.learn.monitors.ValidationMonitor(
+            input_fn=eval_input_fn,
+            every_n_steps=dataset.steps_per_epoch,
+            early_stopping_rounds=FLAGS.early_stopping_rounds,
+            early_stopping_metric='loss',
+            early_stopping_metric_minimize=True)
+    ]
 
     eval_metrics = {
         "accuracy": tf.contrib.learn.metric_spec.MetricSpec(tf.contrib.metrics.streaming_accuracy)
@@ -81,7 +90,7 @@ def main(_):
         train_steps=None,
         eval_steps=None,
         eval_metrics=eval_metrics,
-        train_monitors=None,
+        train_monitors=train_monitors,
         local_eval_frequency=1)
 
     experiment.train_and_evaluate()

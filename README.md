@@ -29,7 +29,7 @@ Task | EntNet (paper) | EntNet (repo)
 16: basic induction | 0.2 | ?
 17: positional reasoning | 0.5 | 1.7
 18: size reasoning | 0.3 | 1.5
-19: path finding | 2.3 | 41.9 ([Task 19 does not converge](#5))
+19: path finding | 2.3 | 41.9 (#5)
 20: agents motivation | 0 | 0.2
 **Failed Tasks** | 0 | ?
 **Mean Error** | 0.5 | ?

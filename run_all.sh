@@ -25,8 +25,12 @@ filenames=(
   # "$base_path/qa20_agents-motivations_10k.json"
 )
 
+seeds=(7 14 21 28 35 42 49 56 63 70)
+
 for file in ${filenames[@]}; do
-  echo "Running $file..."
-  python -m entity_networks.main --dataset=$file
-  sleep 10
+  for seed in ${seeds[@]}; do
+    echo "Running $file with seed $seed..."
+    python -m entity_networks.main --dataset=$file --seed=$seed
+    sleep 10
+  done
 done

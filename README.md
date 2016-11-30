@@ -24,7 +24,7 @@ Task | EntNet (paper) | EntNet (repo)
 11: basic coreference | 0.3 | 0
 12: conjunction | 0 | 0
 13: compound coreference | 1.3 | 0
-14: time reasoning | 0 | ?
+14: time reasoning | 0 | 4.5
 15: basic deduction | 0 | 0
 16: basic induction | 0.2 | ?
 17: positional reasoning | 0.5 | 1.7

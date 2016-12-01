@@ -57,7 +57,7 @@ def main(_):
         tf.contrib.learn.monitors.ValidationMonitor(
             input_fn=eval_input_fn,
             every_n_steps=dataset.steps_per_epoch,
-            early_stopping_rounds=FLAGS.early_stopping_rounds,
+            early_stopping_rounds=FLAGS.early_stopping_rounds * dataset.steps_per_epoch,
             early_stopping_metric='loss',
             early_stopping_metric_minimize=True)
     ]

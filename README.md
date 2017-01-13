@@ -12,7 +12,7 @@ Percent error for each task, comparing those in the paper to the implementation 
 Task | EntNet (paper) | EntNet (repo)
 --- | --- | ---
 1: 1 supporting fact | 0 | 0
-2: 2 supporting facts | 0.1 | ?
+2: 2 supporting facts | 0.1 | 3.0
 3: 3 supporting facts | 4.1 | ?
 4: 2 argument relations | 0 | 0
 5: 3 argument relations | 0.3 | ?
@@ -49,3 +49,4 @@ Task | EntNet (paper) | EntNet (repo)
 
 - Thanks to Mikael Henaff for providing details about their paper over Thanksgiving break. :)
 - Thanks to Andy Zhang ([@zhangandyx](https://twitter.com/zhangandyx)) for helping me troubleshoot numerical instabilities.
+- Thanks to Mike Young for providing results on some of the longer tasks.

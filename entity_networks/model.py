@@ -9,134 +9,153 @@ from functools import partial
 
 from entity_networks.activations import prelu
 from entity_networks.dynamic_memory_cell import DynamicMemoryCell
+from entity_networks.model_utils import get_sequence_length
 
-def count_parameters_in_scope(scope=None):
-    variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
-    return np.sum([np.prod(var.get_shape().as_list()) for var in variables])
+def model_fn(features, labels, params, mode, scope=None):
+    embedding_size = params['embedding_size']
+    num_blocks = params['num_blocks']
+    vocab_size = params['vocab_size']
+    debug = params['debug']
 
-class Model(object):
+    story = features['story']
+    query = features['query']
 
-    def __init__(self, dataset, is_training=True):
-        self.dataset = dataset
-        self.is_training = is_training
+    batch_size = tf.shape(story)[0]
 
-        self.num_blocks = 20
-        self.embedding_size = 100
+    normal_initializer = tf.random_normal_initializer(stddev=0.1)
+    ones_initializer = tf.constant_initializer(1.0)
 
-        self.prelu_ones = partial(prelu, initializer=tf.constant_initializer(1.0))
+    # PReLU activations have their alpha parameters initialized to 1
+    # so they may be identity before training.
+    activation = partial(prelu, initializer=ones_initializer)
 
-        embedding_params = tf.get_variable('embedding_params',
-            shape=[dataset.vocab_size, self.embedding_size],
-            initializer=tf.random_normal_initializer(stddev=0.1))
+    with tf.variable_scope(scope, 'EntityNetwork', initializer=normal_initializer):
+        # Embeddings
+        # The embedding mask forces the special "pad" embedding to zeros.
+        embedding_params = tf.get_variable('embedding_params', [vocab_size, embedding_size])
+        embedding_mask = tf.constant([0 if i == 0 else 1 for i in range(vocab_size)],
+            dtype=tf.float32,
+            shape=[vocab_size, 1])
+        embedding_params_masked = embedding_params * embedding_mask
 
-        story_embedding = tf.nn.embedding_lookup(embedding_params, dataset.story_batch)
-        query_embedding = tf.nn.embedding_lookup(embedding_params, dataset.query_batch)
-
-        # Mask embeddings
-        story_mask = self.get_padding_mask(dataset.story_batch)
-        query_mask = self.get_padding_mask(dataset.query_batch)
+        story_embedding = tf.nn.embedding_lookup(embedding_params_masked, story)
+        query_embedding = tf.nn.embedding_lookup(embedding_params_masked, query)
 
         # Input Module
-        encoded_story = self.encode_input(story_embedding * story_mask, scope='StoryEncoding')
-        encoded_query = self.encode_input(query_embedding * query_mask, scope='QueryEncoding')
+        encoded_story = get_input_encoding(story_embedding, ones_initializer, 'StoryEncoding')
+        encoded_query = get_input_encoding(query_embedding, ones_initializer, 'QueryEncoding')
 
-        # Dynamic Memory
-        sequence_length = self.get_sequence_length(encoded_story)
-        cell = DynamicMemoryCell(self.num_blocks, self.embedding_size,
-            activation=self.prelu_ones)
-        initial_state = cell.zero_state(dataset.batch_size, dtype=tf.float32)
+        # Memory Module
+        # We define the keys outside of the cell so they may be used for state initialization.
+        keys = [tf.get_variable('key_{}'.format(j), [embedding_size]) for j in range(num_blocks)]
+
+        cell = DynamicMemoryCell(num_blocks, embedding_size, keys,
+            initializer=normal_initializer,
+            activation=activation)
+
+        # Recurrence
+        initial_state = cell.zero_state(batch_size, tf.float32)
+        sequence_length = get_sequence_length(encoded_story)
         _, last_state = tf.nn.dynamic_rnn(cell, encoded_story,
-            initial_state=initial_state,
-            sequence_length=sequence_length)
+            sequence_length=sequence_length,
+            initial_state=initial_state)
 
         # Output Module
-        self.output = self.get_output(last_state, encoded_query)
+        output = get_output(last_state, encoded_query,
+            num_blocks=num_blocks,
+            vocab_size=vocab_size,
+            initializer=normal_initializer,
+            activation=activation)
+        prediction = tf.argmax(output, 1)
 
-        # Loss
-        with tf.variable_scope('Loss'):
-            cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(self.output, dataset.answer_batch)
-            self.loss = tf.reduce_mean(cross_entropy)
+        # Training
+        loss = get_loss(output, labels, mode)
+        train_op = get_train_op(loss, params, mode)
 
-        # Accuracy
-        with tf.variable_scope('Accuracy'):
-            self.accuracy = tf.contrib.metrics.accuracy(tf.argmax(self.output, 1), dataset.answer_batch)
+        if debug:
+            tf.contrib.layers.summarize_tensor(sequence_length, 'sequence_length')
+            tf.contrib.layers.summarize_tensor(encoded_story, 'encoded_story')
+            tf.contrib.layers.summarize_tensor(encoded_query, 'encoded_query')
+            tf.contrib.layers.summarize_tensor(last_state, 'last_state')
+            tf.contrib.layers.summarize_tensor(output, 'output')
+            tf.contrib.layers.summarize_variables()
 
-        # Summaries
-        tf.contrib.layers.summarize_tensor(self.loss)
-        tf.contrib.layers.summarize_tensor(self.accuracy)
+            tf.add_check_numerics_ops()
 
-        # Optimization
-        if is_training:
-            self.global_step = tf.contrib.framework.get_or_create_global_step()
+        return prediction, loss, train_op
 
-            with tf.variable_scope('LearningRate'):
-                num_steps_per_decay = dataset.num_batches * 25
-                self.learning_rate = 1e-2 / 2**(tf.to_float(self.global_step) // num_steps_per_decay)
-            tf.contrib.layers.summarize_tensor(self.learning_rate)
+def get_input_encoding(embedding, initializer=None, scope=None):
+    """
+    Implementation of the learned multiplicative mask from Section 2.1, Equation 1. This module is also described
+    in [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852) as Position Encoding (PE). The mask allows
+    the ordering of words in a sentence to affect the encoding.
+    """
+    with tf.variable_scope(scope, 'Encoding', initializer=initializer):
+        _, _, max_sentence_length, _ = embedding.get_shape().as_list()
+        positional_mask = tf.get_variable('positional_mask', [max_sentence_length, 1])
+        encoded_input = tf.reduce_sum(embedding * positional_mask, reduction_indices=[2])
+        return encoded_input
 
-            self.train_op = tf.contrib.layers.optimize_loss(
-                self.loss,
-                self.global_step,
-                learning_rate=self.learning_rate,
-                clip_gradients=40.0,
-                optimizer='Adam')
+def get_output(last_state, encoded_query, num_blocks, vocab_size,
+        activation=tf.nn.relu,
+        initializer=None,
+        scope=None):
+    """
+    Implementation of Section 2.3, Equation 6. This module is also described in more detail here:
+    [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852).
+    """
+    with tf.variable_scope(scope, 'Output', initializer=initializer):
+        last_state = tf.pack(tf.split(1, num_blocks, last_state), axis=1)
+        _, _, embedding_size = last_state.get_shape().as_list()
 
-    def get_sequence_length(self, sequence):
-        """
-        This is a hacky way of determining the actual length of a sequence that has been padded with zeros.
-        """
-        used = tf.sign(tf.reduce_max(tf.abs(sequence), reduction_indices=[-1]))
-        length = tf.cast(tf.reduce_sum(used, reduction_indices=[-1]), tf.int32)
-        return length
+        # Use the encoded_query to attend over memories (hidden states of dynamic last_state cell blocks)
+        attention = tf.reduce_sum(last_state * encoded_query, reduction_indices=[2])
 
-    def get_padding_mask(self, sequence):
-        """
-        This is a hacky way of masking the padded sentence embeddings.
-        """
-        sequence = tf.reduce_sum(sequence, reduction_indices=[-1], keep_dims=True)
-        mask = tf.to_float(tf.greater(sequence, 0))
-        return tf.expand_dims(mask, -1)
+        # Subtract max for numerical stability (softmax is shift invariant)
+        attention_max = tf.reduce_max(attention, reduction_indices=[-1], keep_dims=True)
+        attention = tf.nn.softmax(attention - attention_max)
+        attention = tf.expand_dims(attention, 2)
 
-    def encode_input(self, embedding, scope=None):
-        """
-        Implementation of the learned multiplicative mask from Section 2.1, Equation 1. This module is also described
-        in [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852) as Position Encoding (PE). The mask allows
-        the ordering of words in a sentence to affect the encoding.
-        """
-        with tf.variable_scope(scope, 'Encoding'):
-            _, _, max_sentence_length, _ = embedding.get_shape().as_list()
-            positional_mask = tf.get_variable('positional_mask',
-                shape=[max_sentence_length, 1],
-                initializer=tf.random_normal_initializer(stddev=0.1))
-            encoded_input = tf.reduce_sum(embedding * positional_mask, reduction_indices=[2])
-            return encoded_input
+        # Weight memories by attention vectors
+        u = tf.reduce_sum(last_state * attention, reduction_indices=[1])
 
-    def get_output(self, last_state, encoded_query, scope=None):
-        """
-        Implementation of Section 2.3, Equation 6. This module is also described in more detail here:
-        [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852).
-        """
-        with tf.variable_scope(scope, 'Output'):
-            last_state = tf.pack(tf.split(1, self.num_blocks, last_state), axis=1)
+        # R acts as the decoder matrix to convert from internal state to the output vocabulary size
+        R = tf.get_variable('R', [embedding_size, vocab_size])
+        H = tf.get_variable('H', [embedding_size, embedding_size])
 
-            # Use the query to attend over memories (hidden states of dynamic memory cell blocks)
-            p = tf.reduce_sum(last_state * encoded_query, reduction_indices=[2])
-            p = tf.nn.softmax(p)
+        q = tf.squeeze(encoded_query, squeeze_dims=[1])
+        y = tf.matmul(activation(q + tf.matmul(u, H)), R)
+        return y
 
-            # Weight memories by attention vectors
-            u = tf.reduce_sum(last_state * tf.expand_dims(p, 2), reduction_indices=[1])
+def get_loss(output, labels, mode):
+    if mode == tf.contrib.learn.ModeKeys.INFER:
+        return None
+    return tf.contrib.losses.sparse_softmax_cross_entropy(output, labels)
 
-            # R acts as the decoder matrix to convert from internal state to the output vocabulary size.
-            R = tf.get_variable('R',
-                shape=[self.embedding_size, self.dataset.vocab_size],
-                initializer=tf.random_normal_initializer(stddev=0.1))
-            H = tf.get_variable('H',
-                shape=[self.embedding_size, self.embedding_size],
-                initializer=tf.random_normal_initializer(stddev=0.1))
+def get_train_op(loss, params, mode):
+    if mode != tf.contrib.learn.ModeKeys.TRAIN:
+        return None
 
-            y = tf.matmul(self.prelu_ones(tf.squeeze(encoded_query) + tf.matmul(u, H)), R)
-            return y
+    clip_gradients = params['clip_gradients']
+    learning_rate_init = params['learning_rate_init']
+    learning_rate_decay_rate = params['learning_rate_decay_rate']
+    learning_rate_decay_steps = params['learning_rate_decay_steps']
 
-    @property
-    def num_parameters(self):
-        return count_parameters_in_scope()
+    global_step = tf.contrib.framework.get_or_create_global_step()
+
+    learning_rate = tf.train.exponential_decay(
+        learning_rate=learning_rate_init,
+        decay_steps=learning_rate_decay_steps,
+        decay_rate=learning_rate_decay_rate,
+        global_step=global_step,
+        staircase=True)
+
+    tf.contrib.layers.summarize_tensor(learning_rate, tag='learning_rate')
+
+    train_op = tf.contrib.layers.optimize_loss(loss,
+        global_step=global_step,
+        learning_rate=learning_rate,
+        optimizer='Adam',
+        clip_gradients=clip_gradients)
+
+    return train_op

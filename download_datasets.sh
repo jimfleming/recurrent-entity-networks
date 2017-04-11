@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ ! -d ./datasets ]; then
+  mkdir -p ./datasets
+fi
+
 BABI_TASKS=datasets/babi_tasks_data_1_20_v1.2.tar.gz
 DIALOG_TASKS=datasets/dialog_babi_tasks_data_1_6.tgz
 CHILDRENS_BOOK=datasets/childrens_book_test.tgz

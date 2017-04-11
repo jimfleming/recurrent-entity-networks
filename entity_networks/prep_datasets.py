@@ -9,7 +9,6 @@ import os
 import re
 import json
 import tarfile
-import numpy as np
 import tensorflow as tf
 
 from tqdm import tqdm
@@ -74,11 +73,14 @@ def save_dataset(stories, path):
     for story, query, answer in stories:
         story_flat = [token_id for sentence in story for token_id in sentence]
 
+        story_feature = tf.train.Feature(int64_list=tf.train.Int64List(value=story_flat))
+        query_feature = tf.train.Feature(int64_list=tf.train.Int64List(value=query))
+        answer_feature = tf.train.Feature(int64_list=tf.train.Int64List(value=[answer]))
 
         features = tf.train.Features(feature={
-            'story': int64_features(story_flat),
-            'query': int64_features(query),
-            'answer': int64_features([answer]),
+            'story': story_feature,
+            'query': query_feature,
+            'answer': answer_feature,
         })
 
         example = tf.train.Example(features=features)
@@ -163,21 +165,21 @@ def main():
         'qa20_agents-motivations',
     ]
 
-    for filename in tqdm(filenames):
-        if FLAGS.include_10k:
-            stories_path_train = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_train.txt')
-            stories_path_test = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_test.txt')
-            dataset_path_train = os.path.join(FLAGS.dest_dir, filename + '_10k_train.tfrecords')
-            dataset_path_test = os.path.join(FLAGS.dest_dir, filename + '_10k_test.tfrecords')
-            metadata_path = os.path.join(FLAGS.dest_dir, filename + '_10k.json')
-            dataset_size = 10000
-        else:
+    for filename in tqdm(filenames, desc='Processing datasets into records...'):
+        if FLAGS.only_1k:
             stories_path_train = os.path.join('tasks_1-20_v1-2/en/', filename + '_train.txt')
             stories_path_test = os.path.join('tasks_1-20_v1-2/en/', filename + '_test.txt')
             dataset_path_train = os.path.join(FLAGS.dest_dir, filename + '_1k_train.tfrecords')
             dataset_path_test = os.path.join(FLAGS.dest_dir, filename + '_1k_test.tfrecords')
             metadata_path = os.path.join(FLAGS.dest_dir, filename + '_1k.json')
             dataset_size = 1000
+        else:
+            stories_path_train = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_train.txt')
+            stories_path_test = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_test.txt')
+            dataset_path_train = os.path.join(FLAGS.dest_dir, filename + '_10k_train.tfrecords')
+            dataset_path_test = os.path.join(FLAGS.dest_dir, filename + '_10k_test.tfrecords')
+            metadata_path = os.path.join(FLAGS.dest_dir, filename + '_10k.json')
+            dataset_size = 10000
 
         # From the entity networks paper:
         # > Copying previous works (Sukhbaatar et al., 2015; Xiong et al., 2016),

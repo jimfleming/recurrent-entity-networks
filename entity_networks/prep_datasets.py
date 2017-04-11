@@ -1,5 +1,5 @@
 """
-This module loads and pre-processes a bAbI dataset into TFRecords.
+Loads and pre-processes a bAbI dataset into TFRecords.
 """
 from __future__ import absolute_import
 from __future__ import print_function
@@ -17,16 +17,13 @@ from tqdm import tqdm
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('source_dir', 'datasets/', 'Directory containing bAbI sources.')
-tf.app.flags.DEFINE_string('dest_dir', 'datasets/processed/', 'Where to write datasets.')
-tf.app.flags.DEFINE_boolean('include_10k', True, 'Whether to use 10k or 1k examples.')
+tf.app.flags.DEFINE_string('dest_dir', 'datasets/records/', 'Where to write datasets.')
+tf.app.flags.DEFINE_boolean('only_1k', False, 'Whether to use bAbI 1k or bAbI 10k (default).')
 
-SPLIT_RE = re.compile('(\W+)?')
+SPLIT_RE = re.compile(r'(\W+)?')
 
 PAD_TOKEN = '_PAD'
 PAD_ID = 0
-
-def int64_features(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
 def tokenize(sentence):
     """
@@ -76,6 +73,7 @@ def save_dataset(stories, path):
     writer = tf.python_io.TFRecordWriter(path)
     for story, query, answer in stories:
         story_flat = [token_id for sentence in story for token_id in sentence]
+
 
         features = tf.train.Features(feature={
             'story': int64_features(story_flat),
@@ -165,7 +163,6 @@ def main():
         'qa20_agents-motivations',
     ]
 
-    tar = tarfile.open(os.path.join(FLAGS.source_dir, 'babi_tasks_data_1_20_v1.2.tar.gz'))
     for filename in tqdm(filenames):
         if FLAGS.include_10k:
             stories_path_train = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_train.txt')
@@ -183,12 +180,16 @@ def main():
             dataset_size = 1000
 
         # From the entity networks paper:
-        # > Copying previous works (Sukhbaatar et al., 2015; Xiong et al., 2016), the capacity of the memory
-        # > was limited to the most recent 70 sentences, except for task 3 which was limited to 130 sentences.
+        # > Copying previous works (Sukhbaatar et al., 2015; Xiong et al., 2016),
+        # > the capacity of the memory was limited to the most recent 70 sentences,
+        # > except for task 3 which was limited to 130 sentences.
         if filename == 'qa3_three-supporting-facts':
             truncated_story_length = 130
         else:
             truncated_story_length = 70
+
+        tar_path = os.path.join(FLAGS.source_dir, 'babi_tasks_data_1_20_v1.2.tar.gz')
+        tar = tarfile.open(tar_path)
 
         f_train = tar.extractfile(stories_path_train)
         f_test = tar.extractfile(stories_path_test)
@@ -205,12 +206,13 @@ def main():
         stories_token_test = tokenize_stories(stories_test, token_to_id)
         stories_token_all = stories_token_train + stories_token_test
 
-        max_sentence_length = max([len(sentence) for story, _, _ in stories_token_all for sentence in story])
+        story_lengths = [len(sentence) for story, _, _ in stories_token_all for sentence in story]
+        max_sentence_length = max(story_lengths)
         max_story_length = max([len(story) for story, _, _ in stories_token_all])
         max_query_length = max([len(query) for _, query, _ in stories_token_all])
         vocab_size = len(token_to_id)
 
-        with open(metadata_path, 'w') as f:
+        with open(metadata_path, 'w') as f_obj:
             metadata = {
                 'dataset_name': filename,
                 'dataset_size': dataset_size,
@@ -224,7 +226,7 @@ def main():
                     'test': os.path.basename(dataset_path_test),
                 }
             }
-            json.dump(metadata, f)
+            json.dump(metadata, f_obj)
 
         stories_pad_train = pad_stories(stories_token_train, \
             max_sentence_length, max_story_length, max_query_length)

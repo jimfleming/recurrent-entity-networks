@@ -15,8 +15,8 @@ from tqdm import tqdm
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('source_dir', 'datasets/', 'Directory containing bAbI sources.')
-tf.app.flags.DEFINE_string('dest_dir', 'datasets/records/', 'Where to write datasets.')
+tf.app.flags.DEFINE_string('source_dir', 'data/', 'Directory containing bAbI sources.')
+tf.app.flags.DEFINE_string('output_dir', 'data/records/', 'Where to write datasets.')
 tf.app.flags.DEFINE_boolean('only_1k', False, 'Whether to use bAbI 1k or bAbI 10k (default).')
 
 SPLIT_RE = re.compile(r'(\W+)?')
@@ -139,8 +139,8 @@ def truncate_stories(stories, max_length):
     return stories_truncated
 
 def main():
-    if not os.path.exists(FLAGS.dest_dir):
-        os.makedirs(FLAGS.dest_dir)
+    if not os.path.exists(FLAGS.output_dir):
+        os.makedirs(FLAGS.output_dir)
 
     filenames = [
         'qa1_single-supporting-fact',
@@ -169,16 +169,16 @@ def main():
         if FLAGS.only_1k:
             stories_path_train = os.path.join('tasks_1-20_v1-2/en/', filename + '_train.txt')
             stories_path_test = os.path.join('tasks_1-20_v1-2/en/', filename + '_test.txt')
-            dataset_path_train = os.path.join(FLAGS.dest_dir, filename + '_1k_train.tfrecords')
-            dataset_path_test = os.path.join(FLAGS.dest_dir, filename + '_1k_test.tfrecords')
-            metadata_path = os.path.join(FLAGS.dest_dir, filename + '_1k.json')
+            dataset_path_train = os.path.join(FLAGS.output_dir, filename + '_1k_train.tfrecords')
+            dataset_path_test = os.path.join(FLAGS.output_dir, filename + '_1k_test.tfrecords')
+            metadata_path = os.path.join(FLAGS.output_dir, filename + '_1k.json')
             dataset_size = 1000
         else:
             stories_path_train = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_train.txt')
             stories_path_test = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_test.txt')
-            dataset_path_train = os.path.join(FLAGS.dest_dir, filename + '_10k_train.tfrecords')
-            dataset_path_test = os.path.join(FLAGS.dest_dir, filename + '_10k_test.tfrecords')
-            metadata_path = os.path.join(FLAGS.dest_dir, filename + '_10k.json')
+            dataset_path_train = os.path.join(FLAGS.output_dir, filename + '_10k_train.tfrecords')
+            dataset_path_test = os.path.join(FLAGS.output_dir, filename + '_10k_test.tfrecords')
+            metadata_path = os.path.join(FLAGS.output_dir, filename + '_10k.json')
             dataset_size = 10000
 
         # From the entity networks paper:

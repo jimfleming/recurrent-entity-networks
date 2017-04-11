@@ -1,3 +1,4 @@
+"Main training module."
 from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
@@ -9,10 +10,10 @@ import random
 import numpy as np
 import tensorflow as tf
 
-tf.logging.set_verbosity(tf.logging.INFO)
-
 from entity_networks.model import model_fn
 from entity_networks.dataset import Dataset
+
+tf.logging.set_verbosity(tf.logging.INFO)
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -23,21 +24,28 @@ tf.app.flags.DEFINE_integer('num_epochs', 200, 'Number of training epochs.')
 tf.app.flags.DEFINE_integer('seed', 67, 'Random seed.')
 tf.app.flags.DEFINE_integer('early_stopping_rounds', 10, 'Number of epochs before early stopping.')
 tf.app.flags.DEFINE_float('learning_rate', 1e-2, 'Base learning rate.')
-tf.app.flags.DEFINE_float('clip_gradients', 40.0, 'Clip the global norm of the gradients to this value.')
-tf.app.flags.DEFINE_string('model_dir', 'logs/', 'Model directory.')
-tf.app.flags.DEFINE_string('dataset', 'datasets/processed/qa1_single-supporting-fact_10k.json', 'Dataset path.')
-tf.app.flags.DEFINE_boolean('debug', False, 'Debug mode to enable more summaries and numerical checks.')
+tf.app.flags.DEFINE_float('clip_gradients', 40.0, 'Clip gradient global norm to this value.')
+tf.app.flags.DEFINE_string('logs', 'logs/', 'Model directory.')
+tf.app.flags.DEFINE_boolean('debug', False, 'Enable more summaries and numerical checks.')
+
+tf.app.flags.DEFINE_string('dataset', \
+    'data/records/qa1_single-supporting-fact_10k.json', \
+    'Dataset path.')
 
 def main(_):
+    "Main training entrypoint."
+
     random.seed(FLAGS.seed)
     np.random.seed(FLAGS.seed)
 
     dataset = Dataset(FLAGS.dataset, FLAGS.batch_size)
 
-    train_input_fn = dataset.get_input_fn('train',
+    train_input_fn = dataset.get_input_fn(
+        dataset_name='train',
         num_epochs=FLAGS.num_epochs,
         shuffle=True)
-    eval_input_fn = dataset.get_input_fn('test',
+    eval_input_fn = dataset.get_input_fn(
+        dataset_name='test',
         num_epochs=1,
         shuffle=False)
 
@@ -52,18 +60,8 @@ def main(_):
         'debug': FLAGS.debug,
     }
 
-    train_monitors = [
-        # Run a validation pass every epoch
-        tf.contrib.learn.monitors.ValidationMonitor(
-            input_fn=eval_input_fn,
-            every_n_steps=dataset.steps_per_epoch,
-            early_stopping_rounds=FLAGS.early_stopping_rounds * dataset.steps_per_epoch,
-            early_stopping_metric='loss',
-            early_stopping_metric_minimize=True)
-    ]
-
     eval_metrics = {
-        "accuracy": tf.contrib.learn.metric_spec.MetricSpec(tf.contrib.metrics.streaming_accuracy)
+        'accuracy': tf.contrib.learn.MetricSpec(tf.contrib.metrics.streaming_accuracy)
     }
 
     config = tf.contrib.learn.RunConfig(
@@ -76,7 +74,7 @@ def main(_):
 
     dataset_name = os.path.splitext(os.path.basename(FLAGS.dataset))[0]
     timestamp = int(time.time())
-    model_dir = os.path.join(FLAGS.model_dir, dataset_name, str(timestamp))
+    model_dir = os.path.join(FLAGS.logs, dataset_name, str(timestamp))
     estimator = tf.contrib.learn.Estimator(
         model_dir=model_dir,
         model_fn=model_fn,
@@ -90,7 +88,7 @@ def main(_):
         train_steps=None,
         eval_steps=None,
         eval_metrics=eval_metrics,
-        train_monitors=train_monitors,
+        train_monitors=None,
         local_eval_frequency=1)
 
     experiment.train_and_evaluate()

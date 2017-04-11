@@ -1,9 +1,9 @@
 # Recurrent Entity Networks
 
 This repository contains an independent TensorFlow implementation of recurrent entity networks from [Tracking the World State with
-Recurrent Entity Networks](https://openreview.net/forum?id=rJTKKKqeg). This paper introduces the first method to solve all of the bAbI tasks using 10k training examples. The author's original Torch implementation is available [here](https://github.com/facebook/MemNN/tree/master/EntNet-babi).
+Recurrent Entity Networks](https://arxiv.org/abs/1612.03969). This paper introduces the first method to solve all of the bAbI tasks using 10k training examples. The author's original Torch implementation is now available [here](https://github.com/facebook/MemNN/tree/master/EntNet-babi).
 
-<img src="images/diagram.png" alt="Diagram of recurrent entity network" width="886" height="658">
+<img src="assets/diagram.png" alt="Diagram of recurrent entity network architecture" width="886" height="658">
 
 ## Results
 
@@ -36,14 +36,15 @@ Task | EntNet (paper) | EntNet (repo)
 
 ## Setup
 
-1. Download the datasets by running [download_datasets.sh](download_datasets.sh) or from [The bAbI Project](https://research.facebook.com/research/babi/).
-2. Run [prep_datasets.py](prep_datasets.py) which will convert the datasets into [TFRecords](https://www.tensorflow.org/versions/r0.11/how_tos/reading_data/index.html#standard_tensorflow_format).
+1. Download the datasets by running [download_babi.sh](download_babi.sh) or from [The bAbI Project](https://research.facebook.com/research/babi/).
+2. Run [prep_datasets.py](entity_networks/prep_datasets.py) which will convert the datasets into [TFRecords](https://www.tensorflow.org/programmers_guide/reading_data#standard_tensorflow_format).
 3. Run `python -m entity_networks.main` to begin training on QA1.
-4. Run `./run_all.sh` to train on all tasks.
 
-## Dependencies
+## Major Dependencies
 
-- TensorFlow v0.11
+- TensorFlow v1.1.0
+
+(For additional dependencies see [requirements.txt](requirements.txt))
 
 ## Thanks!
 

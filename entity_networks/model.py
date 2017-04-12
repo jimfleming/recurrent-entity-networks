@@ -3,10 +3,10 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
+from functools import partial
+
 import numpy as np
 import tensorflow as tf
-
-from functools import partial
 
 from entity_networks.model_utils import get_sequence_length
 from entity_networks.activation_ops import prelu

@@ -118,9 +118,10 @@ def get_input_encoding(embedding, initializer=None, scope=None):
         # story: Tensor("EntityNetwork/embedding_lookup:0", shape=(?, 9, 5, 100), dtype=float32)
         # query: Tensor("EntityNetwork/embedding_lookup_1:0", shape=(?, 1, 5, 100), dtype=float32)
 
-        # input = nn.View(-1, opt.winsize * opt.edim)(input)
-        _, _, max_sentence_length, embedding_size = embedding.get_shape().as_list()
         print('get_input_encoding', embedding)
+        _, _, max_sentence_length, embedding_size = embedding.get_shape().as_list()
+
+        # input = nn.View(-1, opt.winsize * opt.edim)(input)
         embedding = tf.reshape(embedding, shape=[-1, max_sentence_length * embedding_size])
         print('tf.reshape(embedding)', embedding)
 
@@ -133,10 +134,10 @@ def get_input_encoding(embedding, initializer=None, scope=None):
         print('embedding * positional_mask', embedding)
 
         # return nn.Sum(2)(nn.View(opt.batchsize, opt.winsize, opt.edim)(input))
-        encoded_input = tf.reduce_sum(embedding, axis=2)
-        print('encoded_input', encoded_input)
-        encoded_input = tf.reshape(encoded_input, shape=[-1, max_sentence_length, embedding_size])
+        encoded_input = tf.reshape(embedding, shape=[-1, max_sentence_length, embedding_size])
         print('tf.reshape(encoded_input)', encoded_input)
+        encoded_input = tf.reduce_sum(encoded_input, axis=1)
+        print('encoded_input', encoded_input)
         return encoded_input
 
 def get_outputs(

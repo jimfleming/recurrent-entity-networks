@@ -65,12 +65,12 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
 
     def __call__(self, inputs, state, scope=None):
         with tf.variable_scope(scope or type(self).__name__, initializer=self._initializer):
-            # Split the hidden state into blocks (each U, V, W are shared across blocks).
-            state = tf.split(state, self._num_blocks, axis=1)
-
             U = tf.get_variable('U', [self._num_units_per_block, self._num_units_per_block])
             V = tf.get_variable('V', [self._num_units_per_block, self._num_units_per_block])
             W = tf.get_variable('W', [self._num_units_per_block, self._num_units_per_block])
+
+            # Split the hidden state into blocks (each U, V, W are shared across blocks).
+            state = tf.split(state, self._num_blocks, axis=1)
 
             next_states = []
             for j, state_j in enumerate(state): # Hidden State (j)
@@ -84,7 +84,7 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
 
                 # Equation 5: h_j <- h_j / \norm{h_j}
                 # Forget previous memories by normalization.
-                state_j_next = tf.nn.l2_normalize(state_j_next, -1, epsilon=1e-7)
+                state_j_next = state_j_next / tf.norm(state_j_next, ord='euclidean', axis=1)
 
                 next_states.append(state_j_next)
             state_next = tf.concat(next_states, axis=1)

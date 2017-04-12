@@ -45,7 +45,15 @@ class Dataset(object):
             query = tf.zeros(
                 shape=[1, 1, self._max_query_length],
                 dtype=tf.int64)
-            return {'story': story, 'query': query}, None
+            features = {
+                'story': story,
+                'query': query
+            }
+            input_fn_ops = tf.contrib.learn.InputFnOps(
+                features=features,
+                labels=None,
+                default_inputs=features)
+            return input_fn_ops
         return _input_fn
 
     def get_input_fn(self, dataset_name, num_epochs, shuffle):

@@ -86,6 +86,13 @@ def main(_):
         config=config,
         params=params)
 
+    export_strategy = tf.contrib.learn.make_export_strategy(
+        serving_input_fn=dataset.get_serving_input_fn(),
+        default_output_alternative_key=None,
+        assets_extra=None,
+        as_text=False,
+        exports_to_keep=5)
+
     experiment = tf.contrib.learn.Experiment(
         estimator=estimator,
         train_input_fn=train_input_fn,
@@ -94,7 +101,8 @@ def main(_):
         eval_steps=None,
         eval_metrics=eval_metrics,
         train_monitors=None,
-        local_eval_frequency=1)
+        local_eval_frequency=1,
+        export_strategies=[export_strategy])
 
     experiment.train_and_evaluate()
 

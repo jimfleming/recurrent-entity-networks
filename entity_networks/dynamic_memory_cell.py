@@ -44,7 +44,7 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
         """
         Implements the gate (scalar for each block). Equation 2:
 
-        g_j <- sigma(s_t^T h_j + s_t^T w_j)
+        g_j <- \sigma(s_t^T h_j + s_t^T w_j)
         """
         a = tf.reduce_sum(inputs * state_j, axis=1)
         b = tf.reduce_sum(inputs * tf.expand_dims(key_j, axis=0), axis=1)
@@ -55,7 +55,7 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
         Represents the new memory candidate that will be weighted by the
         gate value and combined with the existing memory. Equation 3:
 
-        h_j^~ <- phi(U h_j + V w_j + W s_t)
+        h_j^~ <- \phi(U h_j + V w_j + W s_t)
         """
         key_V = tf.matmul(tf.expand_dims(key_j, 0), V)
         state_U = tf.matmul(state_j, U)

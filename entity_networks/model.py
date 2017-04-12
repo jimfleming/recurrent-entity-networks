@@ -38,23 +38,38 @@ def model_fn(features, labels, params, mode, scope=None):
     with tf.variable_scope(scope, 'EntityNetwork', initializer=normal_initializer):
         # Embeddings
         # The embedding mask forces the special "pad" embedding to zeros.
-        embedding_params = tf.get_variable('embedding_params', [vocab_size, embedding_size])
+        embedding_params = tf.get_variable(
+            name='embedding_params',
+            shape=[vocab_size, embedding_size],
+            initializer=normal_initializer)
         embedding_mask = tf.constant(
             value=[0 if i == 0 else 1 for i in range(vocab_size)],
-            dtype=tf.float32,
-            shape=[vocab_size, 1])
+            shape=[vocab_size, 1],
+            dtype=tf.float32)
         embedding_params_masked = embedding_params * embedding_mask
 
         story_embedding = tf.nn.embedding_lookup(embedding_params_masked, story)
         query_embedding = tf.nn.embedding_lookup(embedding_params_masked, query)
 
         # Input Module
-        encoded_story = get_input_encoding(story_embedding, ones_initializer, 'StoryEncoding')
-        encoded_query = get_input_encoding(query_embedding, ones_initializer, 'QueryEncoding')
+        encoded_story = get_input_encoding(
+            inputs=story_embedding,
+            initializer=ones_initializer,
+            scope='StoryEncoding')
+        encoded_query = get_input_encoding(
+            inputs=query_embedding,
+            initializer=ones_initializer,
+            scope='QueryEncoding')
 
         # Memory Module
         # We define the keys outside of the cell so they may be used for state initialization.
-        keys = [tf.get_variable('key_{}'.format(j), [embedding_size]) for j in range(num_blocks)]
+        keys = []
+        for j in range(num_blocks):
+            key = tf.get_variable(
+                name='key_{}'.format(j),
+                shape=[embedding_size],
+                initializer=normal_initializer)
+            keys.append(key)
         cell = DynamicMemoryCell(
             num_blocks=num_blocks,
             num_units_per_block=embedding_size,
@@ -106,7 +121,7 @@ def model_fn(features, labels, params, mode, scope=None):
 
         return predictions, loss, train_op
 
-def get_input_encoding(embedding, initializer=None, scope=None):
+def get_input_encoding(inputs, initializer=None, scope=None):
     """
     Implementation of the learned multiplicative mask from Section 2.1, Equation 1.
     This module is also described in [End-To-End Memory Networks](https://arxiv.org/abs/1502.01852)
@@ -114,9 +129,11 @@ def get_input_encoding(embedding, initializer=None, scope=None):
     encoding.
     """
     with tf.variable_scope(scope, 'Encoding', initializer=initializer):
-        _, _, max_sentence_length, embedding_size = embedding.get_shape().as_list()
-        positional_mask = tf.get_variable('positional_mask', [max_sentence_length, embedding_size])
-        encoded_input = tf.reduce_sum(embedding * positional_mask, axis=2)
+        _, _, max_sentence_length, embedding_size = inputs.get_shape().as_list()
+        positional_mask = tf.get_variable(
+            name='positional_mask',
+            shape=[max_sentence_length, embedding_size])
+        encoded_input = tf.reduce_sum(inputs * positional_mask, axis=2)
         return encoded_input
 
 def get_outputs(

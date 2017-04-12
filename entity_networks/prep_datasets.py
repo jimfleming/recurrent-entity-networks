@@ -214,7 +214,7 @@ def main():
         max_query_length = max([len(query) for _, query, _ in stories_token_all])
         vocab_size = len(token_to_id)
 
-        with open(metadata_path, 'w') as f_obj:
+        with open(metadata_path, 'w') as f:
             metadata = {
                 'dataset_name': filename,
                 'dataset_size': dataset_size,
@@ -228,7 +228,7 @@ def main():
                     'test': os.path.basename(dataset_path_test),
                 }
             }
-            json.dump(metadata, f_obj)
+            json.dump(metadata, f)
 
         stories_pad_train = pad_stories(stories_token_train, \
             max_sentence_length, max_story_length, max_query_length)

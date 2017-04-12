@@ -36,9 +36,20 @@ class Dataset(object):
         "Return the number of steps per epoch for the current batch size."
         return self._dataset_size / self._batch_size
 
+    def get_serving_input_fn(self):
+        "Return an input function suitable for SavedModel."
+        def _input_fn():
+            story = tf.zeros(
+                shape=[self._max_story_length, self._max_sentence_length],
+                dtype=tf.int64)
+            query = tf.zeros(
+                shape=[1, self._max_query_length],
+                dtype=tf.int64)
+            return {'story': story, 'query': query}, None
+        return _input_fn
+
     def get_input_fn(self, dataset_name, num_epochs, shuffle):
         "Return an input function to be used with `tf.contrib.learn.Experiment`."
-
         def _input_fn():
             story_feature = tf.FixedLenFeature(
                 shape=[self._max_story_length, self._max_sentence_length],

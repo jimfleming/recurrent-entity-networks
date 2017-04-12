@@ -115,30 +115,11 @@ def get_input_encoding(embedding, initializer=None, scope=None):
     encoding.
     """
     with tf.variable_scope(scope, 'Encoding', initializer=initializer):
-        # story embedding: Tensor("EntityNetwork/embedding_lookup:0", shape=(?, 9, 5, 100), dtype=float32)
-        # query embedding: Tensor("EntityNetwork/embedding_lookup_1:0", shape=(?, 1, 5, 100), dtype=float32)
-        # original encoded_input: Tensor("EntityNetwork/StoryEncoding/Sum:0", shape=(?, 9, 100), dtype=float32)
-
-        print('get_input_encoding', embedding)
+        # story: Tensor("EntityNetwork/embedding_lookup:0", shape=(?, 9, 5, 100), dtype=float32)
+        # query: Tensor("EntityNetwork/embedding_lookup_1:0", shape=(?, 1, 5, 100), dtype=float32)
         _, _, max_sentence_length, embedding_size = embedding.get_shape().as_list()
-
-        # input = nn.View(-1, opt.winsize * opt.edim)(input)
-        embedding = tf.reshape(embedding, shape=[-1, max_sentence_length * embedding_size])
-        print('tf.reshape(embedding)', embedding)
-
-        # input = nn.CMul(opt.winsize * opt.edim)(input):annotate{name = label}
-        positional_mask = tf.get_variable(
-            name='positional_mask',
-            shape=[1, max_sentence_length * embedding_size])
-        print('positional_mask', positional_mask)
-        embedding = embedding * positional_mask
-        print('embedding * positional_mask', embedding)
-
-        # return nn.Sum(2)(nn.View(opt.batchsize, opt.winsize, opt.edim)(input))
-        encoded_input = tf.reshape(embedding, shape=[-1, max_sentence_length, embedding_size])
-        print('tf.reshape(encoded_input)', encoded_input)
-        encoded_input = tf.reduce_sum(encoded_input, axis=1)
-        print('encoded_input', encoded_input)
+        positional_mask = tf.get_variable('positional_mask', [max_sentence_length, embedding_size])
+        encoded_input = tf.reduce_sum(embedding * positional_mask, axis=2)
         return encoded_input
 
 def get_outputs(

@@ -13,6 +13,17 @@ import tensorflow as tf
 from entity_networks.model import model_fn
 from entity_networks.dataset import Dataset
 
+TIMESTAMP = int(time.time())
+RUN_NAME = os.environ.get('RUN_NAME', str(TIMESTAMP))
+SHARED_DIR = os.environ.get('SHARED_DIR', None)
+
+if SHARED_DIR is not None:
+    DATA_DIR = os.path.join(SHARED_DIR, 'data/babi/records/')
+    MODEL_DIR = os.path.join(SHARED_DIR, 'runs', RUN_NAME)
+else:
+    DATA_DIR = 'data/records/'
+    MODEL_DIR = os.path.join('logs', RUN_NAME)
+
 tf.logging.set_verbosity(tf.logging.INFO)
 
 FLAGS = tf.app.flags.FLAGS
@@ -25,12 +36,8 @@ tf.app.flags.DEFINE_integer('seed', 67, 'Random seed.')
 tf.app.flags.DEFINE_integer('early_stopping_rounds', 10, 'Number of epochs before early stopping.')
 tf.app.flags.DEFINE_float('learning_rate', 1e-2, 'Base learning rate.')
 tf.app.flags.DEFINE_float('clip_gradients', 40.0, 'Clip gradient global norm to this value.')
-tf.app.flags.DEFINE_string('logs', 'logs/', 'Model directory.')
 tf.app.flags.DEFINE_boolean('debug', False, 'Enable more summaries and numerical checks.')
-
-tf.app.flags.DEFINE_string('dataset', \
-    'data/records/qa1_single-supporting-fact_10k.json', \
-    'Dataset path.')
+tf.app.flags.DEFINE_string('dataset', 'qa1_single-supporting-fact_10k.json', 'Dataset path.')
 
 def main(_):
     "Main training entrypoint."
@@ -38,7 +45,8 @@ def main(_):
     random.seed(FLAGS.seed)
     np.random.seed(FLAGS.seed)
 
-    dataset = Dataset(FLAGS.dataset, FLAGS.batch_size)
+    dataset_path = os.path.join(DATA_DIR, FLAGS.dataset)
+    dataset = Dataset(dataset_path, FLAGS.batch_size)
 
     train_input_fn = dataset.get_input_fn(
         dataset_name='train',
@@ -72,11 +80,8 @@ def main(_):
         keep_checkpoint_every_n_hours=1,
         log_device_placement=True)
 
-    dataset_name = os.path.splitext(os.path.basename(FLAGS.dataset))[0]
-    timestamp = int(time.time())
-    model_dir = os.path.join(FLAGS.logs, dataset_name, str(timestamp))
     estimator = tf.contrib.learn.Estimator(
-        model_dir=model_dir,
+        model_dir=MODEL_DIR,
         model_fn=model_fn,
         config=config,
         params=params)

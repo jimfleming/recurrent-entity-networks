@@ -1,0 +1,4 @@
+{
+  "name": "entitynetworks",
+  "default_gpu": "titanx"
+}

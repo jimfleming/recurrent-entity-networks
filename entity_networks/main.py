@@ -75,9 +75,9 @@ def main(_):
     config = tf.contrib.learn.RunConfig(
         tf_random_seed=FLAGS.seed,
         save_summary_steps=120,
-        save_checkpoints_secs=600,
+        save_checkpoints_steps=dataset.steps_per_epoch,
+        save_checkpoints_secs=None,
         keep_checkpoint_max=5,
-        keep_checkpoint_every_n_hours=1,
         log_device_placement=False)
 
     estimator = tf.contrib.learn.Estimator(

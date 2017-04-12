@@ -115,6 +115,7 @@ def get_input_encoding(embedding, initializer=None, scope=None):
     encoding.
     """
     with tf.variable_scope(scope, 'Encoding', initializer=initializer):
+        print(embedding)
         _, _, max_sentence_length, _ = embedding.get_shape().as_list()
         positional_mask = tf.get_variable('positional_mask', [max_sentence_length, 1])
         encoded_input = tf.reduce_sum(embedding * positional_mask, axis=2)

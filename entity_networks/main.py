@@ -78,7 +78,8 @@ def main(_):
         save_checkpoints_steps=dataset.steps_per_epoch,
         save_checkpoints_secs=None,
         keep_checkpoint_max=5,
-        log_device_placement=False)
+        log_device_placement=False,
+        gpu_memory_fraction=0.8)
 
     estimator = tf.contrib.learn.Estimator(
         model_dir=MODEL_DIR,

@@ -40,10 +40,10 @@ class Dataset(object):
         "Return an input function suitable for SavedModel."
         def _input_fn():
             story = tf.zeros(
-                shape=[self._max_story_length, self._max_sentence_length],
+                shape=[1, self._max_story_length, self._max_sentence_length],
                 dtype=tf.int64)
             query = tf.zeros(
-                shape=[1, self._max_query_length],
+                shape=[1, 1, self._max_query_length],
                 dtype=tf.int64)
             return {'story': story, 'query': query}, None
         return _input_fn

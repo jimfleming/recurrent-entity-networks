@@ -115,8 +115,13 @@ def get_input_encoding(embedding, initializer=None, scope=None):
     encoding.
     """
     with tf.variable_scope(scope, 'Encoding', initializer=initializer):
-        # story: Tensor("EntityNetwork/embedding_lookup:0", shape=(?, 9, 5, 100), dtype=float32)
-        # query: Tensor("EntityNetwork/embedding_lookup_1:0", shape=(?, 1, 5, 100), dtype=float32)
+        # story embedding: Tensor("EntityNetwork/embedding_lookup:0", shape=(?, 9, 5, 100), dtype=float32)
+        # query embedding: Tensor("EntityNetwork/embedding_lookup_1:0", shape=(?, 1, 5, 100), dtype=float32)
+
+        _, _, max_sentence_length, _ = embedding.get_shape().as_list()
+        positional_mask = tf.get_variable('positional_mask', [max_sentence_length, 1])
+        encoded_input = tf.reduce_sum(embedding * positional_mask, axis=2)
+        print('original encoded_input', encoded_input)
 
         print('get_input_encoding', embedding)
         _, _, max_sentence_length, embedding_size = embedding.get_shape().as_list()

@@ -78,7 +78,7 @@ def main(_):
         save_checkpoints_secs=600,
         keep_checkpoint_max=5,
         keep_checkpoint_every_n_hours=1,
-        log_device_placement=True)
+        log_device_placement=False)
 
     estimator = tf.contrib.learn.Estimator(
         model_dir=MODEL_DIR,

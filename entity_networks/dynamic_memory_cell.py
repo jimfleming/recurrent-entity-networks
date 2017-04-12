@@ -35,9 +35,7 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
         return self._num_blocks * self._num_units_per_block
 
     def zero_state(self, batch_size, dtype):
-        """
-        Initialize the memory to the key values.
-        """
+        "Initialize the memory to the key values."
         zero_state = tf.concat([tf.expand_dims(key, axis=0) for key in self._keys], axis=1)
         zero_state_batch = tf.tile(zero_state, [batch_size, 1])
         return zero_state_batch

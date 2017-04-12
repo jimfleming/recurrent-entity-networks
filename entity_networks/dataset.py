@@ -28,6 +28,7 @@ class Dataset(object):
 
     @property
     def vocab_size(self):
+        "Return the size of the vocab for this dataset."
         return self._vocab_size
 
     @property

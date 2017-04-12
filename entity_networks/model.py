@@ -14,7 +14,6 @@ from entity_networks.dynamic_memory_cell import DynamicMemoryCell
 
 def model_fn(features, labels, params, mode, scope=None):
     "Define the recurrent entity network model."
-
     embedding_size = params['embedding_size']
     num_blocks = params['num_blocks']
     vocab_size = params['vocab_size']

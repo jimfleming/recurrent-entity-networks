@@ -33,7 +33,7 @@ class Dataset(object):
     @property
     def steps_per_epoch(self):
         "Return the number of steps per epoch for the current batch size."
-        return self._batch_size * self._dataset_size
+        return self._dataset_size / self._batch_size
 
     def get_input_fn(self, dataset_name, num_epochs, shuffle):
         "Return an input function to be used with `tf.contrib.learn.Experiment`."

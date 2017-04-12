@@ -166,6 +166,7 @@ def get_train_op(loss, params):
         decay_rate=params['learning_rate_decay_rate'],
         global_step=global_step,
         staircase=True)
+    tf.summary.scalar('learning_rate', learning_rate)
 
     train_op = tf.contrib.layers.optimize_loss(
         loss=loss,

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
+import numpy as np
 import tensorflow as tf
 
 from functools import partial
@@ -100,6 +101,9 @@ def model_fn(features, labels, params, mode, scope=None):
             tf.summary.histogram(outputs, 'outputs')
 
             tf.add_check_numerics_ops()
+
+        parameters = sum([np.prod(tvar.get_shape().as_list()) for tvar in tf.trainable_variables()])
+        print('Parameters: {}'.format(parameters))
 
         return predictions, loss, train_op
 

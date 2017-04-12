@@ -84,7 +84,10 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
 
                 # Equation 5: h_j <- h_j / \norm{h_j}
                 # Forget previous memories by normalization.
-                state_j_next = state_j_next / tf.norm(state_j_next, ord='euclidean', axis=1)
+                norm = tf.norm(state_j_next, ord='euclidean', axis=1)
+                print('norm', norm)
+                print('state_j_next', state_j_next)
+                state_j_next = state_j_next / norm
 
                 next_states.append(state_j_next)
             state_next = tf.concat(next_states, axis=1)

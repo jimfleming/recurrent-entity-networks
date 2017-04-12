@@ -1,4 +1,4 @@
 {
-  "project_name": "entity_networks",
+  "project_name": "entity-networks",
   "default_gpu": "titanx"
 }

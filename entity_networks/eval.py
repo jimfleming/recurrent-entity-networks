@@ -4,8 +4,6 @@ from __future__ import print_function
 from __future__ import division
 
 import os
-import time
-
 import random
 import numpy as np
 import tensorflow as tf
@@ -92,10 +90,17 @@ def main(_):
         eval_steps=None,
         eval_metrics=eval_metrics,
         train_monitors=None,
-        local_eval_frequency=1,
-        export_strategies=[export_strategy])
-
+        local_eval_frequency=1)
     experiment.evaluate(delay_secs=0)
+
+    export_path = estimator.export_savedmodel(
+        export_dir_base=model_dir,
+        serving_input_fn=dataset.get_serving_input_fn(),
+        default_output_alternative_key=None,
+        assets_extra=None,
+        as_text=False,
+        checkpoint_path=None)
+    print('Exported model: {}'.format(export_path))
 
 if __name__ == '__main__':
     tf.app.run()

@@ -19,10 +19,8 @@ SHARED_DIR = os.environ.get('SHARED_DIR', None)
 
 if SHARED_DIR is not None:
     DATA_DIR = os.path.join(SHARED_DIR, 'data/babi/records/')
-    MODEL_DIR = os.path.join(SHARED_DIR, 'runs', RUN_NAME)
 else:
     DATA_DIR = 'data/records/'
-    MODEL_DIR = os.path.join('logs', RUN_NAME)
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -40,6 +38,11 @@ def main(_):
 
     random.seed(FLAGS.seed)
     np.random.seed(FLAGS.seed)
+
+    if SHARED_DIR is None:
+        model_dir = os.path.join(SHARED_DIR, 'runs', FLAGS.model_dir)
+    else:
+        model_dir = os.path.join('logs', FLAGS.model_dir)
 
     dataset_path = os.path.join(DATA_DIR, FLAGS.dataset)
     dataset = Dataset(dataset_path, FLAGS.batch_size)
@@ -71,7 +74,7 @@ def main(_):
         gpu_memory_fraction=0.8)
 
     estimator = tf.contrib.learn.Estimator(
-        model_dir=MODEL_DIR,
+        model_dir=model_dir,
         model_fn=model_fn,
         config=config,
         params=params)

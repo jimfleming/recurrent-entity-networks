@@ -13,8 +13,6 @@ import tensorflow as tf
 from entity_networks.model import model_fn
 from entity_networks.dataset import Dataset
 
-TIMESTAMP = int(time.time())
-RUN_NAME = os.environ.get('RUN_NAME', str(TIMESTAMP))
 SHARED_DIR = os.environ.get('SHARED_DIR', None)
 
 if SHARED_DIR is not None:
@@ -39,7 +37,7 @@ def main(_):
     random.seed(FLAGS.seed)
     np.random.seed(FLAGS.seed)
 
-    if SHARED_DIR is None:
+    if SHARED_DIR is not None:
         model_dir = os.path.join(SHARED_DIR, 'runs', FLAGS.model_dir)
     else:
         model_dir = os.path.join('logs', FLAGS.model_dir)

@@ -8,7 +8,7 @@ from functools import partial
 import numpy as np
 import tensorflow as tf
 
-from entity_networks.model_utils import get_sequence_length
+from entity_networks.model_ops import get_sequence_length
 from entity_networks.activation_ops import prelu
 from entity_networks.dynamic_memory_cell import DynamicMemoryCell
 
@@ -159,7 +159,7 @@ def get_outputs(
         # Subtract max for numerical stability (softmax is shift invariant)
         attention_max = tf.reduce_max(attention, axis=-1, keep_dims=True)
         attention = tf.nn.softmax(attention - attention_max)
-        attention = tf.expand_dims(attention, 2)
+        attention = tf.expand_dims(attention, axis=2)
 
         # Weight memories by attention vectors
         u = tf.reduce_sum(last_state * attention, axis=1)
@@ -168,7 +168,7 @@ def get_outputs(
         R = tf.get_variable('R', [embedding_size, vocab_size])
         H = tf.get_variable('H', [embedding_size, embedding_size])
 
-        q = tf.squeeze(encoded_query, squeeze_dims=[1])
+        q = tf.squeeze(encoded_query, axis=1)
         y = tf.matmul(activation(q + tf.matmul(u, H)), R)
         return y
 

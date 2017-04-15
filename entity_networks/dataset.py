@@ -27,6 +27,11 @@ class Dataset(object):
         self._datasets = metadata['datasets']
 
     @property
+    def tokens(self):
+        "Return the tokens used for this dataset."
+        return self._tokens
+
+    @property
     def vocab_size(self):
         "Return the size of the vocab for this dataset."
         return self._vocab_size

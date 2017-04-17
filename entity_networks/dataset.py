@@ -27,6 +27,21 @@ class Dataset(object):
         self._datasets = metadata['datasets']
 
     @property
+    def max_sentence_length(self):
+        "Return the maximum sentence length for this dataset."
+        return self._max_sentence_length
+
+    @property
+    def max_story_length(self):
+        "Return the maximum story length for this dataset."
+        return self._max_story_length
+
+    @property
+    def max_query_length(self):
+        "Return the maximum query length for this dataset."
+        return self._max_query_length
+
+    @property
     def tokens(self):
         "Return the tokens used for this dataset."
         return self._tokens

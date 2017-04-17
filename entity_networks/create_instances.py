@@ -4,6 +4,7 @@ from __future__ import division
 
 import os
 import json
+import random
 import numpy as np
 import tensorflow as tf
 
@@ -59,16 +60,17 @@ def main():
             for token, token_id in dataset.tokens.iteritems():
                 vocab[token_id] = token
 
+            instances = []
+
             task = {}
             task['name'] = task_name
             task['max_query_length'] = dataset.max_query_length
             task['max_story_length'] = dataset.max_story_length
             task['max_sentence_length'] = dataset.max_sentence_length
-            task['instances'] = []
             task['vocab'] = vocab.tolist()
 
             with tf.train.SingularMonitoredSession() as sess:
-                while len(task['instances']) < 10:
+                while not sess.should_stop():
                     story_, query_, answer_ = sess.run([story, query, answer])
 
                     instance = {
@@ -77,7 +79,9 @@ def main():
                         'answer': answer_[0].tolist(),
                     }
 
-                    task['instances'].append(instance)
+                    instances.append(instance)
+
+            task['instances'] = random.sample(instances, k=10)
 
             with open(output_path, 'w') as f:
                 f.write(json.dumps(task))

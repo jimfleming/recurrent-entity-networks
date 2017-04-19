@@ -73,10 +73,9 @@ def model_fn(features, labels, params, mode, scope=None):
         # We define the keys outside of the cell so they may be used for memory initialization.
         # Keys are initialized to a range outside of the main vocab.
         keys = [key for key in range(vocab_size - num_blocks, vocab_size)]
-        keys = tf.constant(keys, shape=[num_blocks], dtype=tf.int32)
         keys = tf.nn.embedding_lookup(embedding_params_masked, keys)
         keys = tf.split(keys, num_blocks, axis=0)
-        print('keys', keys)
+        keys = [tf.squeeze(key, axis=0) for key in keys]
 
         cell = DynamicMemoryCell(
             num_blocks=num_blocks,

@@ -16,8 +16,6 @@ class Dataset(object):
 
         with open(metadata_path) as metadata_file:
             metadata = json.load(metadata_file)
-        
-        print(metadata)
 
         self._task_id = metadata['task_id']
         self._task_name = metadata['task_name']

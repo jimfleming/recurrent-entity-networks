@@ -53,9 +53,6 @@ def model_fn(features, labels, params, mode, scope=None):
             dtype=tf.float32)
         embedding_params_masked = embedding_params * embedding_mask
 
-        print('story', story)
-        print('query', query)
-
         story_embedding = tf.nn.embedding_lookup(embedding_params_masked, story)
         query_embedding = tf.nn.embedding_lookup(embedding_params_masked, query)
 
@@ -76,6 +73,7 @@ def model_fn(features, labels, params, mode, scope=None):
         keys = tf.nn.embedding_lookup(embedding_params_masked, keys)
         keys = tf.split(keys, num_blocks, axis=0)
         keys = [tf.squeeze(key, axis=0) for key in keys]
+        print('keys', keys)
 
         cell = DynamicMemoryCell(
             num_blocks=num_blocks,

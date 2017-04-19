@@ -90,7 +90,8 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
                     keep_dims=True)
                 state_j_next_norm = tf.where(
                     tf.greater(state_j_next_norm, 0.0),
-                    state_j_next_norm, 1.0)
+                    state_j_next_norm,
+                    tf.ones_like(state_j_next_norm))
                 state_j_next = state_j_next / state_j_next_norm
 
                 next_states.append(state_j_next)

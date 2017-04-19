@@ -27,6 +27,10 @@ def model_fn(features, labels, params, mode, scope=None):
     normal_initializer = tf.random_normal_initializer(stddev=0.1)
     ones_initializer = tf.constant_initializer(1.0)
 
+    # Extend the vocab to include keys for the dynamic memory cell,
+    # allowing the initialization of the memory to be learned.
+    vocab_size = vocab_size + num_blocks
+
     # PReLU activations have their alpha parameters initialized to 1
     # so they may be identity before training.
     alpha = tf.get_variable(
@@ -37,11 +41,12 @@ def model_fn(features, labels, params, mode, scope=None):
 
     with tf.variable_scope(scope, 'EntityNetwork', initializer=normal_initializer):
         # Embeddings
-        # The embedding mask forces the special "pad" embedding to zeros.
         embedding_params = tf.get_variable(
             name='embedding_params',
             shape=[vocab_size, embedding_size],
             initializer=normal_initializer)
+
+        # The embedding mask forces the special "pad" embedding to zeros.
         embedding_mask = tf.constant(
             value=[0 if i == 0 else 1 for i in range(vocab_size)],
             shape=[vocab_size, 1],
@@ -62,14 +67,16 @@ def model_fn(features, labels, params, mode, scope=None):
             scope='QueryEncoding')
 
         # Memory Module
-        # We define the keys outside of the cell so they may be used for state initialization.
-        keys = []
-        for j in range(num_blocks):
-            key = tf.get_variable(
-                name='key_{}'.format(j),
-                shape=[embedding_size],
-                initializer=normal_initializer)
-            keys.append(key)
+        # We define the keys outside of the cell so they may be used for memory initialization.
+        # TODO: replicate the keys (torch.range(opt.nwords + 1, opt.nwords + opt.memslots) across the batch
+        # TODO: lookup keys in embedding
+        # Keys are initialized to a range outside of the main vocab
+        keys = [key for key in range(vocab_size - num_blocks, vocab_size)]
+        print(keys, params['vocab_size'], vocab_size, num_blocks)
+        keys = tf.constant(keys, shape=[1, num_blocks], dtype=tf.int32)
+        keys = tf.tile(keys, multiples=[batch_size, 1])
+        keys = tf.nn.embedding_lookup(embedding_params_masked, keys)
+
         cell = DynamicMemoryCell(
             num_blocks=num_blocks,
             num_units_per_block=embedding_size,

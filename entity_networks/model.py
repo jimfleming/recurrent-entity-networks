@@ -113,13 +113,15 @@ def model_fn(features, labels, params, mode, scope=None):
 
         if debug:
             for i, key in enumerate(keys):
-                tf.summary.histogram(key, 'key_{}'.format(i))
-            tf.summary.histogram(sequence_length, 'sequence_length')
-            tf.summary.histogram(encoded_story, 'encoded_story')
-            tf.summary.histogram(encoded_query, 'encoded_query')
-            tf.summary.histogram(last_state, 'last_state')
-            tf.summary.histogram(outputs, 'outputs')
-            tf.summary.histogram(predictions, 'predictions')
+                tf.summary.histogram('key_{}'.format(i), key)
+            tf.summary.histogram('story', story)
+            tf.summary.histogram('query', query)
+            tf.summary.histogram('sequence_length', sequence_length)
+            tf.summary.histogram('encoded_story', encoded_story)
+            tf.summary.histogram('encoded_query', encoded_query)
+            tf.summary.histogram('last_state', last_state)
+            tf.summary.histogram('outputs', outputs)
+            tf.summary.histogram('predictions', predictions)
 
             tf.add_check_numerics_ops()
 

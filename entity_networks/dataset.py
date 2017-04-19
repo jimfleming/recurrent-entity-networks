@@ -98,7 +98,7 @@ class Dataset(object):
             return input_fn_ops
         return _input_fn
 
-    def get_input_fn(self, task_name, num_epochs, shuffle):
+    def get_input_fn(self, dataset_name, num_epochs, shuffle):
         "Return an input function to be used with `tf.contrib.learn.Experiment`."
         def _input_fn():
             story_feature = tf.FixedLenFeature(
@@ -117,7 +117,7 @@ class Dataset(object):
                 "answer": answer_feature,
             }
 
-            metadata_path = os.path.join(self._data_dir, self._filenames[task_name])
+            metadata_path = os.path.join(self._data_dir, self._filenames[dataset_name])
 
             features = tf.contrib.learn.read_batch_record_features(
                 file_pattern=metadata_path,

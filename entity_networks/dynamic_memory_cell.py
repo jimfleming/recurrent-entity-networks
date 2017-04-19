@@ -47,7 +47,7 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
         g_j <- \sigma(s_t^T h_j + s_t^T w_j)
         """
         a = tf.reduce_sum(inputs * state_j, axis=1)
-        b = tf.reduce_sum(inputs * tf.expand_dims(key_j, axis=0), axis=1)
+        b = tf.reduce_sum(inputs * key_j, axis=1)
         return tf.sigmoid(a + b)
 
     def get_candidate(self, state_j, key_j, inputs, U, V, W):
@@ -57,7 +57,7 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
 
         h_j^~ <- \phi(U h_j + V w_j + W s_t)
         """
-        key_V = tf.matmul(tf.expand_dims(key_j, 0), V)
+        key_V = tf.matmul(key_j, V)
         state_U = tf.matmul(state_j, U)
         inputs_W = tf.matmul(inputs, W)
         return self._activation(state_U + key_V + inputs_W)
@@ -73,7 +73,7 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
 
             next_states = []
             for j, state_j in enumerate(state): # Hidden State (j)
-                key_j = self._keys[j]
+                key_j = tf.expand_dims(self._keys[j], axis=0)
                 gate_j = self.get_gate(state_j, key_j, inputs)
                 candidate_j = self.get_candidate(state_j, key_j, inputs, U, V, W)
 

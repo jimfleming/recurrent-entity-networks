@@ -68,9 +68,7 @@ def model_fn(features, labels, params, mode, scope=None):
 
         # Memory Module
         # We define the keys outside of the cell so they may be used for memory initialization.
-        # TODO: replicate the keys (torch.range(opt.nwords + 1, opt.nwords + opt.memslots) across the batch
-        # TODO: lookup keys in embedding
-        # Keys are initialized to a range outside of the main vocab
+        # Keys are initialized to a range outside of the main vocab.
         keys = [key for key in range(vocab_size - num_blocks, vocab_size)]
         print(keys, params['vocab_size'], vocab_size, num_blocks)
         keys = tf.constant(keys, shape=[1, num_blocks], dtype=tf.int32)

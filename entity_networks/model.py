@@ -73,7 +73,6 @@ def model_fn(features, labels, params, mode, scope=None):
         keys = tf.nn.embedding_lookup(embedding_params_masked, keys)
         keys = tf.split(keys, num_blocks, axis=0)
         keys = [tf.squeeze(key, axis=0) for key in keys]
-        print('keys', keys)
 
         cell = DynamicMemoryCell(
             num_blocks=num_blocks,

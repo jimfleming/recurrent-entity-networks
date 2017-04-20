@@ -99,8 +99,7 @@ def main():
     parser.add_argument(
         '--data-dir',
         help='Directory containing data',
-        default='data/babi/records/',
-        required=True)
+        default='data/babi/records/')
     parser.add_argument(
         '--dataset-id',
         help='Unique id identifying dataset',

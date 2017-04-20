@@ -3,7 +3,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
+import numpy as np
 import tensorflow as tf
+
+def count_parameters():
+    "Count the number of parameters listed under TRAINABLE_VARIABLES."
+    num_parameters = sum([np.prod(tvar.get_shape().as_list())
+                          for tvar in tf.trainable_variables()])
+    return num_parameters
 
 def get_sequence_length(sequence, scope=None):
     "Determine the length of a sequence that has been padded with zeros."

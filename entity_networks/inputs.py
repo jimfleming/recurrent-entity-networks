@@ -43,11 +43,11 @@ def generate_input_fn(filename, metadata, batch_size, num_epochs=None, shuffle=F
             query = record_features['query']
             answer = record_features['answer']
 
-            inputs = {
+            features = {
                 'story': story,
                 'query': query,
             }
 
-            return inputs, answer
+            return features, answer
 
     return _input_fn

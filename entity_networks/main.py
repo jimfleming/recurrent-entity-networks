@@ -8,6 +8,8 @@ import json
 import argparse
 import tensorflow as tf
 
+from tensorflow.contrib.learn.python.learn import learn_runner
+
 from entity_networks.inputs import generate_input_fn
 from entity_networks.serving import generate_serving_input_fn
 from entity_networks.model import model_fn
@@ -16,9 +18,10 @@ def generate_experiment_fn(data_dir, dataset_id, train_batch_size, eval_batch_si
                            num_epochs, train_steps, eval_steps):
     "Return _experiment_fn for use with learn_runner."
 
-    def _experiment_fn(model_dir):
+    def _experiment_fn(output_dir):
         metadata_path = os.path.join(data_dir, '{}_10k.json'.format(dataset_id))
-        metadata = json.load(metadata_path)
+        with open(metadata_path) as metadata_file:
+            metadata = json.load(metadata_file)
 
         train_filename = os.path.join(data_dir, '{}_10k_{}.tfrecords'.format(dataset_id, 'train'))
         eval_filename = os.path.join(data_dir, '{}_10k_{}.tfrecords'.format(dataset_id, 'test'))
@@ -54,11 +57,10 @@ def generate_experiment_fn(data_dir, dataset_id, train_batch_size, eval_batch_si
         }
 
         estimator = tf.contrib.learn.Estimator(
-            model_dir=model_dir,
+            model_dir=output_dir,
             model_fn=model_fn,
             config=run_config,
-            params=params,
-            feature_engineering_fn=None)
+            params=params)
 
         eval_metrics = {
             'accuracy': tf.contrib.learn.MetricSpec(
@@ -133,7 +135,7 @@ def main():
         num_epochs=args.num_epochs,
         train_steps=args.train_steps,
         eval_steps=args.eval_steps)
-    tf.contrib.learn.learn_runner.run(experiment_fn, args.job_dir)
+    learn_runner.run(experiment_fn, args.job_dir)
 
 if __name__ == '__main__':
     main()

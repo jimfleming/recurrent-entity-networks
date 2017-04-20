@@ -5,12 +5,11 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
-import numpy as np
-import tensorflow as tf
-
 from functools import partial
 
-from entity_networks.model_ops import get_sequence_length
+import tensorflow as tf
+
+from entity_networks.model_ops import get_sequence_length, count_parameters
 from entity_networks.activation_ops import prelu
 from entity_networks.dynamic_memory_cell import DynamicMemoryCell
 
@@ -152,7 +151,7 @@ def get_outputs(inputs, params):
             initializer=normal_initializer,
             activation=activation)
 
-        parameters = sum([np.prod(tvar.get_shape().as_list()) for tvar in tf.trainable_variables()])
+        parameters = count_parameters()
         print('Parameters: {}'.format(parameters))
 
         return outputs
@@ -191,7 +190,7 @@ def get_train_op(loss, params, mode):
         staircase=True)
     tf.summary.scalar('learning_rate', learning_rate)
 
-    train_op = optimize_loss(
+    train_op = tf.contrib.layers.optimize_loss(
         loss=loss,
         global_step=global_step,
         learning_rate=learning_rate,
@@ -201,10 +200,10 @@ def get_train_op(loss, params, mode):
 
     return train_op
 
-def model_fn(inputs, labels, params, mode):
+def model_fn(features, labels, mode, params):
     "Return ModelFnOps for use with Estimator."
 
-    outputs = get_outputs(inputs, params)
+    outputs = get_outputs(features, params)
     predictions = get_predictions(outputs)
     loss = get_loss(outputs, labels, mode)
     train_op = get_train_op(loss, params, mode)
@@ -212,4 +211,5 @@ def model_fn(inputs, labels, params, mode):
     return tf.contrib.learn.ModelFnOps(
         predictions=predictions,
         loss=loss,
-        train_op=train_op)
+        train_op=train_op,
+        mode=mode)

@@ -17,14 +17,16 @@ from entity_networks.model import model_fn
 SHARED_DIR = os.environ.get('SHARED_DIR', None)
 RUN_NAME = os.environ.get('RUN_NAME', None)
 
-def generate_experiment_fn(data_dir, dataset_id, train_batch_size, eval_batch_size,
+def generate_experiment_fn(data_dir, dataset_id,
+                           train_batch_size, eval_batch_size,
                            num_epochs, train_steps, eval_steps):
     "Return _experiment_fn for use with learn_runner."
+    if SHARED_DIR is not None:
+        data_dir = os.path.join(SHARED_DIR, data_dir)
 
     def _experiment_fn(output_dir):
         if SHARED_DIR is not None:
             output_dir = os.path.join(SHARED_DIR, 'runs', RUN_NAME, output_dir)
-            data_dir = os.path.join(SHARED_DIR, 'data/babi/records/')
 
         metadata_path = os.path.join(data_dir, '{}_10k.json'.format(dataset_id))
         with open(metadata_path) as metadata_file:
@@ -97,6 +99,7 @@ def main():
     parser.add_argument(
         '--data-dir',
         help='Directory containing data',
+        default='data/babi/records/',
         required=True)
     parser.add_argument(
         '--dataset-id',

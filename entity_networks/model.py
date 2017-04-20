@@ -43,8 +43,7 @@ def model_fn(features, labels, params, mode, scope=None):
         # Embeddings
         embedding_params = tf.get_variable(
             name='embedding_params',
-            shape=[vocab_size, embedding_size],
-            initializer=normal_initializer)
+            shape=[vocab_size, embedding_size])
 
         # The embedding mask forces the special "pad" embedding to zeros.
         embedding_mask = tf.constant(

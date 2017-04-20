@@ -3,47 +3,52 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
+import os
+import json
+import argparse
 import tensorflow as tf
 
 from entity_networks.inputs import generate_input_fn
-from entity_networks.serving import serving_input_fn
+from entity_networks.serving import generate_serving_input_fn
 from entity_networks.model import model_fn
 
-def generate_experiment_fn(data_dir, data_key, train_batch_size, eval_batch_size,
+def generate_experiment_fn(data_dir, dataset_id, train_batch_size, eval_batch_size,
                            num_epochs, train_steps, eval_steps):
     "Return _experiment_fn for use with learn_runner."
 
     def _experiment_fn(model_dir):
+        metadata_path = os.path.join(data_dir, '{}_10k.json'.format(dataset_id))
+        metadata = json.load(metadata_path)
 
-        # data dir and key
-        # look up filename from queue
-        datasets = {
-            'qa1': 'qa1_single-supporting-fact_10k.json',
-        }
-
-        # TODO: read metadata
+        train_filename = os.path.join(data_dir, '{}_10k_{}.tfrecords'.format(dataset_id, 'train'))
+        eval_filename = os.path.join(data_dir, '{}_10k_{}.tfrecords'.format(dataset_id, 'test'))
 
         train_input_fn = generate_input_fn(
-            filenames=train_files,
+            filename=train_filename,
+            metadata=metadata,
             batch_size=train_batch_size,
             num_epochs=num_epochs,
             shuffle=True)
 
         eval_input_fn = generate_input_fn(
-            filenames=eval_files,
+            filename=eval_filename,
+            metadata=metadata,
             batch_size=eval_batch_size,
             num_epochs=1,
             shuffle=False)
 
         run_config = tf.contrib.learn.RunConfig()
 
-        # TODO: define hyperparameters, e.g. learning_rate
+        vocab_size = metadata['vocab_size']
+        task_size = metadata['task_size']
+        train_steps_per_epoch = task_size // train_batch_size
+
         params = {
-            'vocab_size': dataset.vocab_size,
+            'vocab_size': vocab_size,
             'embedding_size': 100,
             'num_blocks': 20,
             'learning_rate_init': 1e-2,
-            'learning_rate_decay_steps': dataset.steps_per_epoch * 25,
+            'learning_rate_decay_steps': train_steps_per_epoch * 25,
             'learning_rate_decay_rate': 0.5,
             'clip_gradients': 40.0,
         }
@@ -60,6 +65,7 @@ def generate_experiment_fn(data_dir, data_key, train_batch_size, eval_batch_size
                 metric_fn=tf.contrib.metrics.streaming_accuracy)
         }
 
+        serving_input_fn = generate_serving_input_fn(metadata)
         export_strategy = tf.contrib.learn.make_export_strategy(
             serving_input_fn=serving_input_fn)
 
@@ -80,14 +86,16 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--train-files',
-        help='Train files',
-        nargs='+',
+        '--data-dir',
+        help='Directory containing data',
         required=True)
     parser.add_argument(
-        '--eval-files',
-        help='Evaluation files',
-        nargs='+',
+        '--dataset-id',
+        help='Unique id identifying dataset',
+        required=True)
+    parser.add_argument(
+        '--job-dir',
+        help='Location to write checkpoints, summaries, and export models',
         required=True)
     parser.add_argument(
         '--num-epochs',
@@ -113,17 +121,19 @@ def main():
         help='Number of steps to run evaluation at each checkpoint',
         type=int)
 
+    args = parser.parse_args()
+
     tf.logging.set_verbosity(tf.logging.INFO)
 
     experiment_fn = generate_experiment_fn(
-        train_files=args.train_files,
-        eval_files=args.eval_files,
-        train_batch_size=train_batch_size,
-        eval_batch_size=eval_batch_size,
+        data_dir=args.data_dir,
+        dataset_id=args.dataset_id,
+        train_batch_size=args.train_batch_size,
+        eval_batch_size=args.eval_batch_size,
         num_epochs=args.num_epochs,
         train_steps=args.train_steps,
         eval_steps=args.eval_steps)
-    tf.contrib.learn.learn_runner.run(experiment_fn, job_dir)
+    tf.contrib.learn.learn_runner.run(experiment_fn, args.job_dir)
 
 if __name__ == '__main__':
     main()

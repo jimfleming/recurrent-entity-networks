@@ -15,8 +15,11 @@ from tqdm import tqdm
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('source_dir', 'data/', 'Directory containing bAbI sources.')
-tf.app.flags.DEFINE_string('output_dir', 'data/records/', 'Where to write datasets.')
+tf.app.flags.DEFINE_string(
+    'source_path',
+    'data/babi_tasks_data_1_20_v1.2.tar.gz',
+    'Tar containing bAbI sources.')
+tf.app.flags.DEFINE_string('output_dir', 'data/records/', 'Dataset destination.')
 tf.app.flags.DEFINE_boolean('only_1k', False, 'Whether to use bAbI 1k or bAbI 10k (default).')
 
 SPLIT_RE = re.compile(r'(\W+)?')
@@ -160,7 +163,6 @@ def main():
         'qa20_agents-motivations',
     ]
 
-
     task_titles = [
         'Task 1: Single Supporting Fact',
         'Task 2: Two Supporting Facts',
@@ -212,29 +214,28 @@ def main():
         if FLAGS.only_1k:
             stories_path_train = os.path.join('tasks_1-20_v1-2/en/', task_name + '_train.txt')
             stories_path_test = os.path.join('tasks_1-20_v1-2/en/', task_name + '_test.txt')
-            dataset_path_train = os.path.join(FLAGS.output_dir, task_name + '_1k_train.tfrecords')
-            dataset_path_test = os.path.join(FLAGS.output_dir, task_name + '_1k_test.tfrecords')
-            metadata_path = os.path.join(FLAGS.output_dir, task_name + '_1k.json')
+            dataset_path_train = os.path.join(FLAGS.output_dir, task_id + '_1k_train.tfrecords')
+            dataset_path_test = os.path.join(FLAGS.output_dir, task_id + '_1k_test.tfrecords')
+            metadata_path = os.path.join(FLAGS.output_dir, task_id + '_1k.json')
             task_size = 1000
         else:
             stories_path_train = os.path.join('tasks_1-20_v1-2/en-10k/', task_name + '_train.txt')
             stories_path_test = os.path.join('tasks_1-20_v1-2/en-10k/', task_name + '_test.txt')
-            dataset_path_train = os.path.join(FLAGS.output_dir, task_name + '_10k_train.tfrecords')
-            dataset_path_test = os.path.join(FLAGS.output_dir, task_name + '_10k_test.tfrecords')
-            metadata_path = os.path.join(FLAGS.output_dir, task_name + '_10k.json')
+            dataset_path_train = os.path.join(FLAGS.output_dir, task_id + '_10k_train.tfrecords')
+            dataset_path_test = os.path.join(FLAGS.output_dir, task_id + '_10k_test.tfrecords')
+            metadata_path = os.path.join(FLAGS.output_dir, task_id + '_10k.json')
             task_size = 10000
 
         # From the entity networks paper:
         # > Copying previous works (Sukhbaatar et al., 2015; Xiong et al., 2016),
         # > the capacity of the memory was limited to the most recent 70 sentences,
         # > except for task 3 which was limited to 130 sentences.
-        if task_name == 'qa3_three-supporting-facts':
+        if task_id == 'qa3':
             truncated_story_length = 130
         else:
             truncated_story_length = 70
 
-        tar_path = os.path.join(FLAGS.source_dir, 'babi_tasks_data_1_20_v1.2.tar.gz')
-        tar = tarfile.open(tar_path)
+        tar = tarfile.open(FLAGS.source_path)
 
         f_train = tar.extractfile(stories_path_train)
         f_test = tar.extractfile(stories_path_test)

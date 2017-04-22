@@ -9,8 +9,7 @@ from functools import partial
 
 import tensorflow as tf
 
-from entity_networks.model_ops import get_sequence_length, count_parameters
-from entity_networks.activation_ops import prelu
+from entity_networks.model_ops import prelu, get_sequence_length, count_parameters, cyclic_learning_rate
 from entity_networks.dynamic_memory_cell import DynamicMemoryCell
 
 def get_input_encoding(inputs, initializer=None, scope=None):
@@ -182,12 +181,11 @@ def get_train_op(loss, params, mode):
 
     global_step = tf.contrib.framework.get_or_create_global_step()
 
-    learning_rate = tf.train.exponential_decay(
-        learning_rate=params['learning_rate_init'],
-        decay_steps=params['learning_rate_decay_steps'],
-        decay_rate=params['learning_rate_decay_rate'],
-        global_step=global_step,
-        staircase=True)
+    learning_rate = cyclic_learning_rate(
+        learning_rate_min=params['learning_rate_min'],
+        learning_rate_max=params['learning_rate_max'],
+        step_size=params['step_size'],
+        global_step=global_step)
     tf.summary.scalar('learning_rate', learning_rate)
 
     train_op = tf.contrib.layers.optimize_loss(

@@ -59,9 +59,9 @@ def generate_experiment_fn(data_dir, dataset_id,
             'vocab_size': vocab_size,
             'embedding_size': 100,
             'num_blocks': 20,
-            'learning_rate_init': 1e-2,
-            'learning_rate_decay_steps': train_steps_per_epoch * 25,
-            'learning_rate_decay_rate': 0.5,
+            'learning_rate_min': 0.0,
+            'learning_rate_max': 1e-2,
+            'step_size': train_steps_per_epoch * 2,
             'clip_gradients': 40.0,
         }
 

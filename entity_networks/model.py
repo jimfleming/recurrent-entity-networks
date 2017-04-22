@@ -9,8 +9,11 @@ from functools import partial
 
 import tensorflow as tf
 
-from entity_networks.model_ops import prelu, get_sequence_length, count_parameters, cyclic_learning_rate
 from entity_networks.dynamic_memory_cell import DynamicMemoryCell
+from entity_networks.model_ops import cyclic_learning_rate, \
+                                      get_sequence_length, \
+                                      count_parameters, \
+                                      prelu
 
 def get_input_encoding(inputs, initializer=None, scope=None):
     """

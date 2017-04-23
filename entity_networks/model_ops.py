@@ -25,13 +25,22 @@ def cyclic_learning_rate(
         learning_rate_max,
         step_size,
         global_step,
+        mode='triangular',
         scope=None):
     with tf.variable_scope(scope, 'CyclicLearningRate'):
         cycle = tf.floor(1 + tf.to_float(global_step) / (2 * step_size))
+
+        if mode == 'triangular':
+            scale = 1
+        elif mode == 'triangular2':
+            scale = 2**(cycle - 1)
+        else:
+            raise ValueError('Unrecognized mode: {}'.format(mode))
+
         x = tf.abs(tf.to_float(global_step) / step_size - 2 * cycle + 1)
         lr = learning_rate_min + (learning_rate_max - learning_rate_min) * \
-            tf.maximum(0.0, 1 - x) / \
-            (2**(cycle - 1))
+            tf.maximum(0.0, 1 - x) / scale
+
         return lr
 
 def prelu(features, alpha, scope=None):

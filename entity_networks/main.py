@@ -52,7 +52,7 @@ def generate_experiment_fn(data_dir, dataset_id,
             'num_blocks': 20,
             'learning_rate_min': 0.0,
             'learning_rate_max': 1e-2,
-            'step_size': train_steps_per_epoch * 5,
+            'step_size': train_steps_per_epoch * 10,
             'clip_gradients': 40.0,
         }
 

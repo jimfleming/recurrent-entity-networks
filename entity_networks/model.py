@@ -187,7 +187,7 @@ def get_train_op(loss, params, mode):
     learning_rate = cyclic_learning_rate(
         learning_rate_min=params['learning_rate_min'],
         learning_rate_max=params['learning_rate_max'],
-        step_size=params['step_size'],
+        step_size=params['learning_rate_step_size'],
         global_step=global_step)
     tf.summary.scalar('learning_rate', learning_rate)
 

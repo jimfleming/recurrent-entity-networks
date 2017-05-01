@@ -14,9 +14,14 @@ from entity_networks.inputs import generate_input_fn
 from entity_networks.serving import generate_serving_input_fn
 from entity_networks.model import model_fn
 
-def generate_experiment_fn(data_dir, dataset_id,
-                           train_batch_size, eval_batch_size,
-                           num_epochs, train_steps, eval_steps):
+BATCH_SIZE = 32
+NUM_BLOCKS = 20
+EMBEDDING_SIZE = 100
+CLIP_GRADIENTS = 40.0
+
+def generate_experiment_fn(data_dir, dataset_id, num_epochs,
+                           learning_rate_min, learning_rate_max,
+                           learning_rate_step_size):
     "Return _experiment_fn for use with learn_runner."
     def _experiment_fn(output_dir):
         metadata_path = os.path.join(data_dir, '{}_10k.json'.format(dataset_id))
@@ -29,14 +34,14 @@ def generate_experiment_fn(data_dir, dataset_id,
         train_input_fn = generate_input_fn(
             filename=train_filename,
             metadata=metadata,
-            batch_size=train_batch_size,
+            batch_size=BATCH_SIZE,
             num_epochs=num_epochs,
             shuffle=True)
 
         eval_input_fn = generate_input_fn(
             filename=eval_filename,
             metadata=metadata,
-            batch_size=eval_batch_size,
+            batch_size=BATCH_SIZE,
             num_epochs=1,
             shuffle=False)
 
@@ -44,16 +49,16 @@ def generate_experiment_fn(data_dir, dataset_id,
 
         vocab_size = metadata['vocab_size']
         task_size = metadata['task_size']
-        train_steps_per_epoch = task_size // train_batch_size
+        train_steps_per_epoch = task_size // BATCH_SIZE
 
         params = {
             'vocab_size': vocab_size,
-            'embedding_size': 100,
-            'num_blocks': 20,
-            'learning_rate_min': 0.0,
-            'learning_rate_max': 1e-2,
-            'step_size': train_steps_per_epoch * 10,
-            'clip_gradients': 40.0,
+            'embedding_size': EMBEDDING_SIZE,
+            'num_blocks': NUM_BLOCKS,
+            'learning_rate_min': learning_rate_min,
+            'learning_rate_max': learning_rate_max,
+            'learning_rate_step_size': learning_rate_step_size * train_steps_per_epoch,
+            'clip_gradients': CLIP_GRADIENTS,
         }
 
         estimator = tf.contrib.learn.Estimator(
@@ -76,8 +81,8 @@ def generate_experiment_fn(data_dir, dataset_id,
             train_input_fn=train_input_fn,
             eval_input_fn=eval_input_fn,
             eval_metrics=eval_metrics,
-            train_steps=train_steps,
-            eval_steps=eval_steps,
+            train_steps=None,
+            eval_steps=None,
             export_strategies=[export_strategy])
         return experiment
 
@@ -105,23 +110,17 @@ def main():
         default=200,
         type=int)
     parser.add_argument(
-        '--train-batch-size',
-        help='Batch size for training steps',
-        type=int,
-        default=32)
+        '--lr-min',
+        help='Minimum learning rate',
+        default=0.0)
     parser.add_argument(
-        '--eval-batch-size',
-        help='Batch size for evaluation steps',
-        type=int,
-        default=32)
+        '--lr-max',
+        help='Maximum learning rate',
+        default=1e-2)
     parser.add_argument(
-        '--train-steps',
-        help='Number of steps to run training',
-        type=int)
-    parser.add_argument(
-        '--eval-steps',
-        help='Number of steps to run evaluation at each checkpoint',
-        type=int)
+        '--lr-step-size',
+        help='Learning rate step size (in epochs)',
+        default=5)
 
     args = parser.parse_args()
 
@@ -130,11 +129,10 @@ def main():
     experiment_fn = generate_experiment_fn(
         data_dir=args.data_dir,
         dataset_id=args.dataset_id,
-        train_batch_size=args.train_batch_size,
-        eval_batch_size=args.eval_batch_size,
         num_epochs=args.num_epochs,
-        train_steps=args.train_steps,
-        eval_steps=args.eval_steps)
+        learning_rate_min=args.lr_min,
+        learning_rate_max=args.lr_max,
+        learning_rate_step_size=args.lr_step_size)
     learn_runner.run(experiment_fn, args.job_dir)
 
 if __name__ == '__main__':

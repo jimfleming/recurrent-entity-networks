@@ -1,0 +1,198 @@
+================================================================================
+Input tree: 'entity_networks/'
+================================================================================
+--------------------------------------------------------------------------------
+Processing file 'entity_networks/main.py'
+ outputting to 'upgraded/main.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+Processing file 'entity_networks/activations.py'
+ outputting to 'upgraded/activations.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+Processing file 'entity_networks/model.py'
+ outputting to 'upgraded/model.py'
+--------------------------------------------------------------------------------
+
+'entity_networks/model.py' Line 96
+--------------------------------------------------------------------------------
+
+Renamed keyword argument from 'reduction_indices' to 'axis'
+
+    Old:         encoded_input = tf.reduce_sum(embedding * positional_mask, reduction_indices=[2])
+                                                                            ~~~~~~~~~~~~~~~~~~     
+    New:         encoded_input = tf.reduce_sum(embedding * positional_mask, axis=[2])
+                                                                            ~~~~~     
+
+'entity_networks/model.py' Line 108
+--------------------------------------------------------------------------------
+
+Renamed function 'tf.pack' to 'tf.stack'
+Added keyword 'axis' to reordered function 'tf.split'
+Added keyword 'num_or_size_splits' to reordered function 'tf.split'
+Added keyword 'value' to reordered function 'tf.split'
+
+    Old:         last_state = tf.pack(tf.split(1, num_blocks, last_state), axis=1)
+                              ~~~~~~~                                              
+    New:         last_state = tf.stack(tf.split(axis=1, num_or_size_splits=num_blocks, value=last_state), axis=1)
+                              ~~~~~~~~          ~~~~~   ~~~~~~~~~~~~~~~~~~~            ~~~~~~                     
+
+'entity_networks/model.py' Line 112
+--------------------------------------------------------------------------------
+
+Renamed keyword argument from 'reduction_indices' to 'axis'
+
+    Old:         attention = tf.reduce_sum(last_state * encoded_query, reduction_indices=[2])
+                                                                       ~~~~~~~~~~~~~~~~~~     
+    New:         attention = tf.reduce_sum(last_state * encoded_query, axis=[2])
+                                                                       ~~~~~     
+
+'entity_networks/model.py' Line 115
+--------------------------------------------------------------------------------
+
+Renamed keyword argument from 'reduction_indices' to 'axis'
+
+    Old:         attention_max = tf.reduce_max(attention, reduction_indices=[-1], keep_dims=True)
+                                                          ~~~~~~~~~~~~~~~~~~                      
+    New:         attention_max = tf.reduce_max(attention, axis=[-1], keep_dims=True)
+                                                          ~~~~~                      
+
+'entity_networks/model.py' Line 120
+--------------------------------------------------------------------------------
+
+Renamed keyword argument from 'reduction_indices' to 'axis'
+
+    Old:         u = tf.reduce_sum(last_state * attention, reduction_indices=[1])
+                                                           ~~~~~~~~~~~~~~~~~~     
+    New:         u = tf.reduce_sum(last_state * attention, axis=[1])
+                                                           ~~~~~     
+
+'entity_networks/model.py' Line 126
+--------------------------------------------------------------------------------
+
+Renamed keyword argument from 'squeeze_dims' to 'axis'
+
+    Old:         q = tf.squeeze(encoded_query, squeeze_dims=[1])
+                                               ~~~~~~~~~~~~~     
+    New:         q = tf.squeeze(encoded_query, axis=[1])
+                                               ~~~~~     
+
+
+--------------------------------------------------------------------------------
+Processing file 'entity_networks/dynamic_memory_cell.py'
+ outputting to 'upgraded/dynamic_memory_cell.py'
+--------------------------------------------------------------------------------
+
+'entity_networks/dynamic_memory_cell.py' Line 33
+--------------------------------------------------------------------------------
+
+Added keyword 'concat_dim' to reordered function 'tf.concat'
+Added keyword 'values' to reordered function 'tf.concat'
+
+    Old:         zero_state = tf.concat(1, [tf.expand_dims(key, 0) for key in self._keys])
+                                                                                           
+    New:         zero_state = tf.concat(axis=1, values=[tf.expand_dims(key, 0) for key in self._keys])
+                                        ~~~~~   ~~~~~~~                                                
+
+'entity_networks/dynamic_memory_cell.py' Line 34
+--------------------------------------------------------------------------------
+
+Renamed function 'tf.pack' to 'tf.stack'
+
+    Old:         zero_state_batch = tf.tile(zero_state, tf.pack([batch_size, 1]))
+                                                        ~~~~~~~                   
+    New:         zero_state_batch = tf.tile(zero_state, tf.stack([batch_size, 1]))
+                                                        ~~~~~~~~                   
+
+'entity_networks/dynamic_memory_cell.py' Line 43
+--------------------------------------------------------------------------------
+
+Renamed keyword argument from 'reduction_indices' to 'axis'
+
+    Old:         a = tf.reduce_sum(inputs * state_j, reduction_indices=[1])
+                                                     ~~~~~~~~~~~~~~~~~~     
+    New:         a = tf.reduce_sum(inputs * state_j, axis=[1])
+                                                     ~~~~~     
+
+'entity_networks/dynamic_memory_cell.py' Line 44
+--------------------------------------------------------------------------------
+
+Renamed keyword argument from 'reduction_indices' to 'axis'
+
+    Old:         b = tf.reduce_sum(inputs * tf.expand_dims(key_j, 0), reduction_indices=[1])
+                                                                      ~~~~~~~~~~~~~~~~~~     
+    New:         b = tf.reduce_sum(inputs * tf.expand_dims(key_j, 0), axis=[1])
+                                                                      ~~~~~     
+
+'entity_networks/dynamic_memory_cell.py' Line 86
+--------------------------------------------------------------------------------
+
+Added keyword 'concat_dim' to reordered function 'tf.concat'
+Added keyword 'values' to reordered function 'tf.concat'
+
+    Old:             state_next = tf.concat(1, next_states)
+                                                            
+    New:             state_next = tf.concat(axis=1, values=next_states)
+                                            ~~~~~   ~~~~~~~             
+
+'entity_networks/dynamic_memory_cell.py' Line 62
+--------------------------------------------------------------------------------
+
+Added keyword 'axis' to reordered function 'tf.split'
+Added keyword 'num_or_size_splits' to reordered function 'tf.split'
+Added keyword 'value' to reordered function 'tf.split'
+
+    Old:             state = tf.split(1, self._num_blocks, state)
+                                                                  
+    New:             state = tf.split(axis=1, num_or_size_splits=self._num_blocks, value=state)
+                                      ~~~~~   ~~~~~~~~~~~~~~~~~~~                  ~~~~~~       
+
+
+--------------------------------------------------------------------------------
+Processing file 'entity_networks/model_utils.py'
+ outputting to 'upgraded/model_utils.py'
+--------------------------------------------------------------------------------
+
+'entity_networks/model_utils.py' Line 13
+--------------------------------------------------------------------------------
+
+Renamed keyword argument from 'reduction_indices' to 'axis'
+
+    Old:         used = tf.sign(tf.reduce_max(tf.abs(sequence), reduction_indices=[-1]))
+                                                                ~~~~~~~~~~~~~~~~~~       
+    New:         used = tf.sign(tf.reduce_max(tf.abs(sequence), axis=[-1]))
+                                                                ~~~~~       
+
+'entity_networks/model_utils.py' Line 14
+--------------------------------------------------------------------------------
+
+Renamed keyword argument from 'reduction_indices' to 'axis'
+
+    Old:         length = tf.cast(tf.reduce_sum(used, reduction_indices=[-1]), tf.int32)
+                                                      ~~~~~~~~~~~~~~~~~~                 
+    New:         length = tf.cast(tf.reduce_sum(used, axis=[-1]), tf.int32)
+                                                      ~~~~~                 
+
+
+--------------------------------------------------------------------------------
+Processing file 'entity_networks/__init__.py'
+ outputting to 'upgraded/__init__.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+Processing file 'entity_networks/eval.py'
+ outputting to 'upgraded/eval.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+Processing file 'entity_networks/dataset.py'
+ outputting to 'upgraded/dataset.py'
+--------------------------------------------------------------------------------
+
+

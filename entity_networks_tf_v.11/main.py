@@ -63,7 +63,7 @@ def main(_):
     ]
 
     eval_metrics = {
-        "accuracy": tf.contrib.learn.MetricSpec(tf.contrib.metrics.streaming_accuracy)
+        "accuracy": tf.contrib.learn.metric_spec.MetricSpec(tf.contrib.metrics.streaming_accuracy)
     }
 
     config = tf.contrib.learn.RunConfig(

@@ -4,9 +4,9 @@ from __future__ import division
 
 import os
 import json
-import argparse
 import tensorflow as tf
 
+from entity_networks.hooks import EarlyStoppingHook
 from entity_networks.inputs import generate_input_fn
 from entity_networks.serving import generate_serving_input_fn
 from entity_networks.model import model_fn
@@ -72,6 +72,16 @@ def generate_experiment_fn(data_dir, dataset_id, num_epochs,
                 metric_fn=tf.contrib.metrics.streaming_accuracy)
         }
 
+        train_monitors = [
+            EarlyStoppingHook(
+                input_fn=eval_input_fn,
+                estimator=estimator,
+                metrics=eval_metrics,
+                metric_name='accuracy',
+                every_steps=1 * train_steps_per_epoch,
+                max_patience=10 * train_steps_per_epoch)
+        ]
+
         serving_input_fn = generate_serving_input_fn(metadata)
         export_strategy = tf.contrib.learn.make_export_strategy(
             serving_input_fn=serving_input_fn)
@@ -81,6 +91,7 @@ def generate_experiment_fn(data_dir, dataset_id, num_epochs,
             train_input_fn=train_input_fn,
             eval_input_fn=eval_input_fn,
             eval_metrics=eval_metrics,
+            train_monitors=train_monitors,
             train_steps=None,
             eval_steps=None,
             export_strategies=[export_strategy])

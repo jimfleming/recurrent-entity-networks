@@ -50,4 +50,4 @@ Task | EntNet (paper) | EntNet (repo)
 
 - Thanks to Mikael Henaff for providing details about their paper over Thanksgiving break. :)
 - Thanks to Andy Zhang ([@zhangandyx](https://twitter.com/zhangandyx)) for helping me troubleshoot numerical instabilities.
-- Thanks to Mike Young for providing results on some of the longer tasks.
+- Thanks to Mike Young (@mikalyoung) for providing results on some of the longer tasks.

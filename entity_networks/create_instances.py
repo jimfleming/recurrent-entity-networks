@@ -5,13 +5,21 @@ from __future__ import division
 import os
 import json
 import random
-import numpy as np
+import argparse
 import tensorflow as tf
 
 from tqdm import tqdm
-from entity_networks.dataset import Dataset
+
+from entity_networks.inputs import generate_input_fn
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--data-dir',
+        help='Directory containing data',
+        default='data/babi/records/')
+    args = parser.parse_args()
+
     tasks_dir = 'tasks/'
 
     if not os.path.exists(tasks_dir):
@@ -41,28 +49,25 @@ def main():
     ]
 
     for task_name in tqdm(task_name.iteritems()):
-        dataset_path = 'data/records/{}_10k.json'.format(task_name)
-        output_path = os.path.join(tasks_dir, '{}.json'.format(task_name))
+        metadata_path = os.path.join(args.data_dir, '{}_10k.json'.format(task_name))
+        with open(metadata_path) as metadata_file:
+            metadata = json.load(metadata_file)
+
+        filename = os.path.join(data_dir, '{}_10k_{}.tfrecords'.format(dataset_id, 'test'))
+        input_fn = generate_input_fn(
+            filename=eval_filename,
+            metadata=metadata,
+            batch_size=BATCH_SIZE,
+            num_epochs=1,
+            shuffle=False)
 
         with tf.Graph().as_default():
-            dataset = Dataset(dataset_path, 1)
-            input_fn = dataset.get_input_fn('test', 1, shuffle=False)
-
             features, answer = input_fn()
 
             story = features['story']
             query = features['query']
 
             instances = []
-
-            task = {}
-            task['task_id'] = dataset.task_id
-            task['task_name'] = dataset.task_name
-            task['task_title'] = dataset.task_title
-            task['max_query_length'] = dataset.max_query_length
-            task['max_story_length'] = dataset.max_story_length
-            task['max_sentence_length'] = dataset.max_sentence_length
-            task['vocab'] = vocab.tolist()
 
             with tf.train.SingularMonitoredSession() as sess:
                 while not sess.should_stop():
@@ -76,10 +81,11 @@ def main():
 
                     instances.append(instance)
 
-            task['instances'] = random.sample(instances, k=10)
+            metadata['instances'] = random.sample(instances, k=10)
 
+            output_path = os.path.join(tasks_dir, '{}.json'.format(task_name))
             with open(output_path, 'w') as f:
-                f.write(json.dumps(task))
+                f.write(json.dumps(metadata))
 
 if __name__ == '__main__':
     main()

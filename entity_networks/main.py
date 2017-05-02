@@ -34,7 +34,7 @@ def main():
     parser.add_argument(
         '--lr-min',
         help='Minimum learning rate',
-        default=0.0,
+        default=2e-4,
         type=float)
     parser.add_argument(
         '--lr-max',
@@ -44,7 +44,7 @@ def main():
     parser.add_argument(
         '--lr-step-size',
         help='Learning rate step size (in epochs)',
-        default=5,
+        default=10,
         type=int)
 
     args = parser.parse_args()

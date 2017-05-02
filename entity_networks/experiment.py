@@ -42,11 +42,14 @@ def generate_experiment_fn(data_dir, dataset_id, num_epochs,
             num_epochs=1,
             shuffle=False)
 
-        run_config = tf.contrib.learn.RunConfig()
-
         vocab_size = metadata['vocab_size']
         task_size = metadata['task_size']
         train_steps_per_epoch = task_size // BATCH_SIZE
+
+        run_config = tf.contrib.learn.RunConfig(
+            save_summary_steps=train_steps_per_epoch,
+            save_checkpoints_steps=train_steps_per_epoch,
+            save_checkpoints_secs=None)
 
         params = {
             'vocab_size': vocab_size,

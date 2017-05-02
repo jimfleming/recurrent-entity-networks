@@ -26,6 +26,7 @@ filenames=(
 )
 
 seeds=(7 14 21 28 35 42 49 56 63 70)
+seeds=(0)
 
 for file in ${filenames[@]}; do
   for seed in ${seeds[@]}; do

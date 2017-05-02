@@ -78,8 +78,9 @@ def generate_experiment_fn(data_dir, dataset_id, num_epochs,
                 estimator=estimator,
                 metrics=eval_metrics,
                 metric_name='accuracy',
-                every_steps=1 * train_steps_per_epoch,
-                max_patience=10 * train_steps_per_epoch)
+                every_steps=10 * train_steps_per_epoch,
+                max_patience=10 * train_steps_per_epoch,
+                minimize=False)
         ]
 
         serving_input_fn = generate_serving_input_fn(metadata)

@@ -39,7 +39,7 @@ def main():
     parser.add_argument(
         '--lr-max',
         help='Maximum learning rate',
-        default=1e-2,
+        default=1e-3,
         type=float)
     parser.add_argument(
         '--lr-step-size',

@@ -57,7 +57,6 @@ def generate_experiment_fn(data_dir, dataset_id, num_epochs,
             'learning_rate_step_size': learning_rate_step_size * train_steps_per_epoch,
             'clip_gradients': CLIP_GRADIENTS,
         }
-        print(params)
 
         estimator = tf.contrib.learn.Estimator(
             model_dir=output_dir,

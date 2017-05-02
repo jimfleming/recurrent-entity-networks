@@ -48,7 +48,7 @@ def generate_experiment_fn(data_dir, dataset_id, num_epochs,
 
         run_config = tf.contrib.learn.RunConfig(
             save_summary_steps=train_steps_per_epoch,
-            save_checkpoints_steps=10 * train_steps_per_epoch,
+            save_checkpoints_steps=5 * train_steps_per_epoch,
             save_checkpoints_secs=None)
 
         params = {
@@ -78,7 +78,7 @@ def generate_experiment_fn(data_dir, dataset_id, num_epochs,
                 estimator=estimator,
                 metrics=eval_metrics,
                 metric_name='accuracy',
-                every_steps=10 * train_steps_per_epoch,
+                every_steps=5 * train_steps_per_epoch,
                 max_patience=10 * train_steps_per_epoch,
                 minimize=False)
         ]

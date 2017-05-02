@@ -4,7 +4,9 @@ from __future__ import division
 
 import tensorflow as tf
 
-class EarlyStoppingHook(tf.train.SessionRunHook):
+from tensorflow.python.training import basic_session_run_hooks
+
+class EarlyStoppingHook(basic_session_run_hooks.SessionRunHook):
 
     def __init__(self, input_fn, estimator, metrics,
                  metric_name='loss', every_steps=100,

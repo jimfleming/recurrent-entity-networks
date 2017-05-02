@@ -15,9 +15,9 @@ Task | EntNet (paper) | EntNet (repo)
 2: 2 supporting facts | 0.1 | 3.0
 3: 3 supporting facts | 4.1 | ?
 4: 2 argument relations | 0 | 0
-5: 3 argument relations | 0.3 | ?
+5: 3 argument relations | 0.3 | 0.5
 6: yes/no questions | 0.2 | 0.1
-7: counting | 0 | ?
+7: counting | 0 | 1.6
 8: lists/sets | 0.5 | ?
 9: simple negation | 0.1 | 0.7
 10: indefinite knowledge | 0.6 | 0.1

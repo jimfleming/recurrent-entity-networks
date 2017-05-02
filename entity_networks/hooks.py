@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from tensorflow.python.training import basic_session_run_hooks
 
-class EarlyStoppingHook(basic_session_run_hooks.SessionRunHook):
+class EarlyStoppingHook(tf.train.SessionRunHook):
 
     def __init__(self, input_fn, estimator, metrics,
                  metric_name='loss', every_steps=100,
@@ -20,7 +20,7 @@ class EarlyStoppingHook(basic_session_run_hooks.SessionRunHook):
         self._max_patience = max_patience
         self._minimize = minimize
 
-        self._timer = tf.train.SecondOrStepTimer(
+        self._timer = basic_session_run_hooks.SecondOrStepTimer(
             every_steps=every_steps,
             every_secs=None)
 

@@ -1,5 +1,5 @@
 """
-This module loads and pre-processes a bAbI dataset into TFRecords.
+Loads and pre-processes a bAbI dataset into TFRecords.
 """
 from __future__ import absolute_import
 from __future__ import print_function
@@ -9,29 +9,26 @@ import os
 import re
 import json
 import tarfile
-import numpy as np
 import tensorflow as tf
 
 from tqdm import tqdm
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('source_dir', 'datasets/', 'Directory containing bAbI sources.')
-tf.app.flags.DEFINE_string('dest_dir', 'datasets/processed/', 'Where to write datasets.')
-tf.app.flags.DEFINE_boolean('include_10k', True, 'Whether to use 10k or 1k examples.')
+tf.app.flags.DEFINE_string(
+    'source_path',
+    'data/babi_tasks_data_1_20_v1.2.tar.gz',
+    'Tar containing bAbI sources.')
+tf.app.flags.DEFINE_string('output_dir', 'data/records/', 'Dataset destination.')
+tf.app.flags.DEFINE_boolean('only_1k', False, 'Whether to use bAbI 1k or bAbI 10k (default).')
 
-SPLIT_RE = re.compile('(\W+)?')
+SPLIT_RE = re.compile(r'(\W+)?')
 
 PAD_TOKEN = '_PAD'
 PAD_ID = 0
 
-def int64_features(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
-
 def tokenize(sentence):
-    """
-    Tokenize a string by splitting on non-word characters and stripping whitespace.
-    """
+    "Tokenize a string by splitting on non-word characters and stripping whitespace."
     return [token.strip().lower() for token in re.split(SPLIT_RE, sentence) if token.strip()]
 
 def parse_stories(lines, only_supporting=False):
@@ -77,10 +74,14 @@ def save_dataset(stories, path):
     for story, query, answer in stories:
         story_flat = [token_id for sentence in story for token_id in sentence]
 
+        story_feature = tf.train.Feature(int64_list=tf.train.Int64List(value=story_flat))
+        query_feature = tf.train.Feature(int64_list=tf.train.Int64List(value=query))
+        answer_feature = tf.train.Feature(int64_list=tf.train.Int64List(value=[answer]))
+
         features = tf.train.Features(feature={
-            'story': int64_features(story_flat),
-            'query': int64_features(query),
-            'answer': int64_features([answer]),
+            'story': story_feature,
+            'query': query_feature,
+            'answer': answer_feature,
         })
 
         example = tf.train.Example(features=features)
@@ -88,9 +89,7 @@ def save_dataset(stories, path):
     writer.close()
 
 def tokenize_stories(stories, token_to_id):
-    """
-    Convert all tokens into their unique ids.
-    """
+    "Convert all tokens into their unique ids."
     story_ids = []
     for story, query, answer in stories:
         story = [[token_to_id[token] for token in sentence] for sentence in story]
@@ -100,21 +99,17 @@ def tokenize_stories(stories, token_to_id):
     return story_ids
 
 def get_tokenizer(stories):
-    """
-    Recover unique tokens as a vocab and map the tokens to ids.
-    """
+    "Recover unique tokens as a vocab and map the tokens to ids."
     tokens_all = []
     for story, query, answer in stories:
         tokens_all.extend([token for sentence in story for token in sentence] + query + [answer])
     vocab = [PAD_TOKEN] + sorted(set(tokens_all))
     token_to_id = {token: i for i, token in enumerate(vocab)}
-    return token_to_id
+    return vocab, token_to_id
 
 def pad_stories(stories, max_sentence_length, max_story_length, max_query_length):
-    """
-    Pad sentences, stories, and queries to a consistence length.
-    """
-    for story, query, answer in stories:
+    "Pad sentences, stories, and queries to a consistence length."
+    for story, query, _ in stories:
         for sentence in story:
             for _ in range(max_sentence_length - len(sentence)):
                 sentence.append(PAD_ID)
@@ -132,6 +127,7 @@ def pad_stories(stories, max_sentence_length, max_story_length, max_query_length
     return stories
 
 def truncate_stories(stories, max_length):
+    "Truncate a story to the specified maximum length."
     stories_truncated = []
     for story, query, answer in stories:
         story_truncated = story[-max_length:]
@@ -139,10 +135,12 @@ def truncate_stories(stories, max_length):
     return stories_truncated
 
 def main():
-    if not os.path.exists(FLAGS.dest_dir):
-        os.makedirs(FLAGS.dest_dir)
+    "Main entrypoint."
 
-    filenames = [
+    if not os.path.exists(FLAGS.output_dir):
+        os.makedirs(FLAGS.output_dir)
+
+    task_names = [
         'qa1_single-supporting-fact',
         'qa2_two-supporting-facts',
         'qa3_three-supporting-facts',
@@ -165,30 +163,79 @@ def main():
         'qa20_agents-motivations',
     ]
 
-    tar = tarfile.open(os.path.join(FLAGS.source_dir, 'babi_tasks_data_1_20_v1.2.tar.gz'))
-    for filename in tqdm(filenames):
-        if FLAGS.include_10k:
-            stories_path_train = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_train.txt')
-            stories_path_test = os.path.join('tasks_1-20_v1-2/en-10k/', filename + '_test.txt')
-            dataset_path_train = os.path.join(FLAGS.dest_dir, filename + '_10k_train.tfrecords')
-            dataset_path_test = os.path.join(FLAGS.dest_dir, filename + '_10k_test.tfrecords')
-            metadata_path = os.path.join(FLAGS.dest_dir, filename + '_10k.json')
-            dataset_size = 10000
+    task_titles = [
+        'Task 1: Single Supporting Fact',
+        'Task 2: Two Supporting Facts',
+        'Task 3: Three Supporting Facts',
+        'Task 4: Two Argument Relations',
+        'Task 5: Three Argument Relations',
+        'Task 6: Yes/No Questions',
+        'Task 7: Counting',
+        'Task 8: Lists/Sets',
+        'Task 9: Simple Negation',
+        'Task 10: IndefiniteKnowledg',
+        'Task 11: Basic Coreference',
+        'Task 12: Conjunction',
+        'Task 13: Compound Coreference',
+        'Task 14: Time Reasoning',
+        'Task 15: Basic Deduction',
+        'Task 16: Basic Induction',
+        'Task 17: Positional Reasoning',
+        'Task 18: Size Reasoning',
+        'Task 19: Path Finding',
+        'Task 20: Agent Motivations',
+    ]
+
+    task_ids = [
+        'qa1',
+        'qa2',
+        'qa3',
+        'qa4',
+        'qa5',
+        'qa6',
+        'qa7',
+        'qa8',
+        'qa9',
+        'qa10',
+        'qa11',
+        'qa12',
+        'qa13',
+        'qa14',
+        'qa15',
+        'qa16',
+        'qa17',
+        'qa18',
+        'qa19',
+        'qa20',
+    ]
+
+    for task_id, task_name, task_title in tqdm(zip(task_ids, task_names, task_titles), \
+            desc='Processing datasets into records...'):
+        if FLAGS.only_1k:
+            stories_path_train = os.path.join('tasks_1-20_v1-2/en/', task_name + '_train.txt')
+            stories_path_test = os.path.join('tasks_1-20_v1-2/en/', task_name + '_test.txt')
+            dataset_path_train = os.path.join(FLAGS.output_dir, task_id + '_1k_train.tfrecords')
+            dataset_path_test = os.path.join(FLAGS.output_dir, task_id + '_1k_test.tfrecords')
+            metadata_path = os.path.join(FLAGS.output_dir, task_id + '_1k.json')
+            task_size = 1000
         else:
-            stories_path_train = os.path.join('tasks_1-20_v1-2/en/', filename + '_train.txt')
-            stories_path_test = os.path.join('tasks_1-20_v1-2/en/', filename + '_test.txt')
-            dataset_path_train = os.path.join(FLAGS.dest_dir, filename + '_1k_train.tfrecords')
-            dataset_path_test = os.path.join(FLAGS.dest_dir, filename + '_1k_test.tfrecords')
-            metadata_path = os.path.join(FLAGS.dest_dir, filename + '_1k.json')
-            dataset_size = 1000
+            stories_path_train = os.path.join('tasks_1-20_v1-2/en-10k/', task_name + '_train.txt')
+            stories_path_test = os.path.join('tasks_1-20_v1-2/en-10k/', task_name + '_test.txt')
+            dataset_path_train = os.path.join(FLAGS.output_dir, task_id + '_10k_train.tfrecords')
+            dataset_path_test = os.path.join(FLAGS.output_dir, task_id + '_10k_test.tfrecords')
+            metadata_path = os.path.join(FLAGS.output_dir, task_id + '_10k.json')
+            task_size = 10000
 
         # From the entity networks paper:
-        # > Copying previous works (Sukhbaatar et al., 2015; Xiong et al., 2016), the capacity of the memory
-        # > was limited to the most recent 70 sentences, except for task 3 which was limited to 130 sentences.
-        if filename == 'qa3_three-supporting-facts':
+        # > Copying previous works (Sukhbaatar et al., 2015; Xiong et al., 2016),
+        # > the capacity of the memory was limited to the most recent 70 sentences,
+        # > except for task 3 which was limited to 130 sentences.
+        if task_id == 'qa3':
             truncated_story_length = 130
         else:
             truncated_story_length = 70
+
+        tar = tarfile.open(FLAGS.source_path)
 
         f_train = tar.extractfile(stories_path_train)
         f_test = tar.extractfile(stories_path_test)
@@ -199,27 +246,30 @@ def main():
         stories_train = truncate_stories(stories_train, truncated_story_length)
         stories_test = truncate_stories(stories_test, truncated_story_length)
 
-        token_to_id = get_tokenizer(stories_train + stories_test)
+        vocab, token_to_id = get_tokenizer(stories_train + stories_test)
+        vocab_size = len(vocab)
 
         stories_token_train = tokenize_stories(stories_train, token_to_id)
         stories_token_test = tokenize_stories(stories_test, token_to_id)
         stories_token_all = stories_token_train + stories_token_test
 
-        max_sentence_length = max([len(sentence) for story, _, _ in stories_token_all for sentence in story])
+        story_lengths = [len(sentence) for story, _, _ in stories_token_all for sentence in story]
+        max_sentence_length = max(story_lengths)
         max_story_length = max([len(story) for story, _, _ in stories_token_all])
         max_query_length = max([len(query) for _, query, _ in stories_token_all])
-        vocab_size = len(token_to_id)
 
         with open(metadata_path, 'w') as f:
             metadata = {
-                'dataset_name': filename,
-                'dataset_size': dataset_size,
-                'max_sentence_length': max_sentence_length,
-                'max_story_length': max_story_length,
+                'task_id': task_id,
+                'task_name': task_name,
+                'task_title': task_title,
+                'task_size': task_size,
                 'max_query_length': max_query_length,
+                'max_story_length': max_story_length,
+                'max_sentence_length': max_sentence_length,
+                'vocab': vocab,
                 'vocab_size': vocab_size,
-                'tokens': token_to_id,
-                'datasets': {
+                'filenames': {
                     'train': os.path.basename(dataset_path_train),
                     'test': os.path.basename(dataset_path_test),
                 }

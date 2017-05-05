@@ -80,7 +80,6 @@ def get_outputs(inputs, params):
     batch_size = tf.shape(story)[0]
 
     normal_initializer = tf.random_normal_initializer(stddev=0.1)
-    ortho_initializer = tf.orthogonal_initializer(gain=1.0)
     ones_initializer = tf.constant_initializer(1.0)
 
     # Extend the vocab to include keys for the dynamic memory cell,
@@ -134,7 +133,6 @@ def get_outputs(inputs, params):
             num_units_per_block=embedding_size,
             keys=keys,
             initializer=normal_initializer,
-            recurrent_initializer=ortho_initializer,
             activation=activation)
 
         # Recurrence

@@ -18,7 +18,7 @@ CLIP_GRADIENTS = 40.0
 
 def generate_experiment_fn(data_dir, dataset_id, num_epochs,
                            learning_rate_min, learning_rate_max,
-                           learning_rate_step_size):
+                           learning_rate_step_size, gradient_noise_scale):
     "Return _experiment_fn for use with learn_runner."
     def _experiment_fn(output_dir):
         metadata_path = os.path.join(data_dir, '{}_10k.json'.format(dataset_id))
@@ -59,6 +59,7 @@ def generate_experiment_fn(data_dir, dataset_id, num_epochs,
             'learning_rate_max': learning_rate_max,
             'learning_rate_step_size': learning_rate_step_size * train_steps_per_epoch,
             'clip_gradients': CLIP_GRADIENTS,
+            'gradient_noise_scale': gradient_noise_scale,
         }
 
         estimator = tf.contrib.learn.Estimator(
@@ -79,7 +80,7 @@ def generate_experiment_fn(data_dir, dataset_id, num_epochs,
                 metrics=eval_metrics,
                 metric_name='accuracy',
                 every_steps=5 * train_steps_per_epoch,
-                max_patience=10 * train_steps_per_epoch,
+                max_patience=50 * train_steps_per_epoch,
                 minimize=False)
         ]
 

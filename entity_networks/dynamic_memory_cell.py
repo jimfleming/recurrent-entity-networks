@@ -17,12 +17,14 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
                  num_units_per_block,
                  keys,
                  initializer=None,
+                 recurrent_initializer=None,
                  activation=tf.nn.relu):
         self._num_blocks = num_blocks # M
         self._num_units_per_block = num_units_per_block # d
         self._keys = keys
         self._activation = activation # \phi
         self._initializer = initializer
+        self._recurrent_initializer = recurrent_initializer
 
     @property
     def state_size(self):
@@ -60,13 +62,16 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
         key_V = tf.matmul(key_j, V)
         state_U = tf.matmul(state_j, U) + U_bias
         inputs_W = tf.matmul(inputs, W)
-        return self._activation(state_U + key_V + inputs_W)
+        return self._activation(state_U * inputs_W * key_V)
 
     def __call__(self, inputs, state, scope=None):
         with tf.variable_scope(scope or type(self).__name__, initializer=self._initializer):
-            U = tf.get_variable('U', [self._num_units_per_block, self._num_units_per_block])
-            V = tf.get_variable('V', [self._num_units_per_block, self._num_units_per_block])
-            W = tf.get_variable('W', [self._num_units_per_block, self._num_units_per_block])
+            U = tf.get_variable('U', [self._num_units_per_block, self._num_units_per_block],
+                                initializer=self._recurrent_initializer)
+            V = tf.get_variable('V', [self._num_units_per_block, self._num_units_per_block],
+                                initializer=self._recurrent_initializer)
+            W = tf.get_variable('W', [self._num_units_per_block, self._num_units_per_block],
+                                initializer=self._recurrent_initializer)
 
             U_bias = tf.get_variable('U_bias', [self._num_units_per_block])
 

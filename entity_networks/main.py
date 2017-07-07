@@ -46,6 +46,11 @@ def main():
         help='Learning rate step size (in epochs)',
         default=10,
         type=int)
+    parser.add_argument(
+        '--grad-noise',
+        help='Gradient noise scale',
+        default=0.005,
+        type=float)
 
     args = parser.parse_args()
 
@@ -57,7 +62,8 @@ def main():
         num_epochs=args.num_epochs,
         learning_rate_min=args.lr_min,
         learning_rate_max=args.lr_max,
-        learning_rate_step_size=args.lr_step_size)
+        learning_rate_step_size=args.lr_step_size,
+        gradient_noise_scale=args.grad_noise)
     learn_runner.run(experiment_fn, args.job_dir)
 
 if __name__ == '__main__':

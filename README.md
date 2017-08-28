@@ -52,4 +52,4 @@ NOTE: Some of these tasks (16 and 19, in particular) required a change in learni
 
 - Thanks to Mikael Henaff for providing details about their paper over Thanksgiving break. :)
 - Thanks to Andy Zhang ([@zhangandyx](https://twitter.com/zhangandyx)) for helping me troubleshoot numerical instabilities.
-- Thanks to Mike Young (@mikalyoung) for providing results on some of the longer tasks.
+- Thanks to Mike Young ([@mikalyoung](https://github.com/mikalyoung)) for providing results on some of the longer tasks.

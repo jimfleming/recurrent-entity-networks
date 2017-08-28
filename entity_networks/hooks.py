@@ -54,9 +54,9 @@ class EarlyStoppingHook(tf.train.SessionRunHook):
 
         current_value = results[self._metric_name]
 
-        if (self._minimize and current_value < self._best_value) or \
-           (not self._minimize and current_value > self._best_value) or \
-           (self._best_value is None):
+        if (self._best_value is None) or \
+           (self._minimize and current_value < self._best_value) or \
+           (not self._minimize and current_value > self._best_value):
             self._best_value = current_value
             self._best_step = global_step
 

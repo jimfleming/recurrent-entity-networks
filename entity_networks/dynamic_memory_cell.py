@@ -62,7 +62,7 @@ class DynamicMemoryCell(tf.contrib.rnn.RNNCell):
         key_V = tf.matmul(key_j, V)
         state_U = tf.matmul(state_j, U) + U_bias
         inputs_W = tf.matmul(inputs, W)
-        return self._activation(state_U * inputs_W * key_V)
+        return self._activation(state_U + inputs_W + key_V)
 
     def __call__(self, inputs, state, scope=None):
         with tf.variable_scope(scope or type(self).__name__, initializer=self._initializer):
